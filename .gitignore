@@ -13,6 +13,11 @@
 /.next/
 /out/
 
+# PWA generated files
+/public/sw.js
+/public/workbox-*.js
+/public/swe-worker-*.js
+
 # production
 /build
 
