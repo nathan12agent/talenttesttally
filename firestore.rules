@@ -1,0 +1,104 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: caller has an active admin session document
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/adminSessions/$(request.auth.uid));
+    }
+
+    // Helper: caller is authenticated (anonymous auth is fine)
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: the round with roundId is NOT locked
+    function roundNotLocked(roundId) {
+      let round = get(/databases/$(database)/documents/eventRounds/$(roundId)).data;
+      return round.status != 'locked';
+    }
+
+    // Helper: the judgeId is assigned to the round
+    function judgeIsAssigned(roundId, judgeId) {
+      let round = get(/databases/$(database)/documents/eventRounds/$(roundId)).data;
+      return judgeId in round.assignedJudgeIds;
+    }
+
+    // Admin sessions: owner can read/write their own session doc
+    match /adminSessions/{uid} {
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow write: if isAuthenticated() && request.auth.uid == uid;
+    }
+
+    // Participants: authenticated read, admin write only
+    match /participants/{chestNo} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Events: authenticated read, admin write only
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Event rounds: authenticated read, admin write only
+    match /eventRounds/{roundId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Judges: authenticated read
+    // Write: admin can do full writes; authenticated judges can merge lastSeenAt heartbeat
+    match /judges/{judgeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+      // Allow judges to update their own heartbeat field only
+      allow update: if isAuthenticated() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeenAt']);
+    }
+
+    // Scores: authenticated read
+    // Write: round must NOT be locked AND the writing judge must be assigned
+    match /scores/{scoreId} {
+      allow read: if isAuthenticated();
+      allow create, update: if
+        isAuthenticated() &&
+        roundNotLocked(request.resource.data.roundId) &&
+        judgeIsAssigned(request.resource.data.roundId, request.resource.data.judgeId);
+      allow delete: if false;
+    }
+
+    // Off-stage judge assignments: authenticated read, admin write
+    match /offStageJudgeAssignments/{group} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Points configuration: authenticated read, admin write
+    match /pointsConfig/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Podiums: authenticated read, admin write
+    // (Written by the admin's lock-round action via computePodiumOnLock)
+    match /podiums/{roundId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Chest-number points totals: authenticated read, admin write
+    // (Updated as part of the admin's lock-round flow)
+    match /chestNoPointsTotals/{chestNo} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Connection probe doc used by useConnectionStatus hook
+    match /_connectionProbe/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
