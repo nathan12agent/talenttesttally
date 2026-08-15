@@ -117,6 +117,7 @@ function PinScreen({
 export function AdminShell({ adminPin }: AdminShellProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [authError, setAuthError] = useState('');
   const [activeTab, setActiveTab] = useState<ActiveTab>('participants');
   const [groupFilter, setGroupFilter] = useState<Group | 'all'>('all');
   const [events, setEvents] = useState<EventDoc[]>([]);
@@ -132,7 +133,9 @@ export function AdminShell({ adminPin }: AdminShellProps) {
         const saved = typeof window !== 'undefined' && localStorage.getItem('adminSession') === '1';
         setIsAdmin(saved);
       })
-      .catch(() => {})
+      .catch((err) => {
+        setAuthError(err instanceof Error ? err.message : 'Failed to connect to Firebase.');
+      })
       .finally(() => setAuthReady(true));
   }, []);
 
@@ -165,6 +168,20 @@ export function AdminShell({ adminPin }: AdminShellProps) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-sm text-gray-500">Connecting…</p>
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="text-center max-w-sm">
+          <p className="text-red-600 mb-2 font-medium">Connection failed</p>
+          <p className="text-sm text-gray-600 mb-4">{authError}</p>
+          <button onClick={() => window.location.reload()} className="min-h-[48px] px-6 bg-blue-600 text-white rounded-lg font-medium">
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
