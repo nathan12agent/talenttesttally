@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRounds } from '../../hooks/useRounds';
 import { useScores } from '../../hooks/useScores';
 import { updateRoundStatus, computePodiumOnLock } from '../../lib/firestore';
-import type { EventDoc, JudgeDoc, RoundDoc } from '../../types';
+import type { EventDoc, RoundDoc } from '../../types';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -155,7 +155,6 @@ function RoundControlCard({ round, eventName }: RoundControlCardProps) {
 
 interface LiveControlProps {
   events: EventDoc[];
-  judges: JudgeDoc[];
 }
 
 function TrackSection({
@@ -189,7 +188,7 @@ function TrackSection({
   );
 }
 
-export function LiveControl({ events, judges }: LiveControlProps) {
+export function LiveControl({ events }: LiveControlProps) {
   const rounds = useRounds(); // no judgeId → all rounds, sorted by scheduledOrder
 
   const eventMap = new Map(events.map((e) => [e.id, e.name]));

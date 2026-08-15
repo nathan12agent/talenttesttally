@@ -48,7 +48,7 @@ export function AddJudgeDevice({ judges }: AddJudgeDeviceProps) {
           <QRCodeSVG value={link} size={200} />
           <p className="text-sm text-gray-600 break-all text-center">{link}</p>
           <p className="text-xs text-gray-400 text-center">
-            Scan on {selectedJudge.name}'s phone → confirm PIN → tap "Add to Home Screen"
+            Scan on {selectedJudge.name}&apos;s phone &rarr; confirm PIN &rarr; tap &ldquo;Add to Home Screen&rdquo;
             for a one-tap app icon. Re-show this QR any time to switch to a backup phone.
           </p>
         </div>

@@ -1,4 +1,4 @@
-import { RoundDoc, ScoringType } from '../types';
+import { RoundDoc } from '../types';
 
 export function validateRoundConfig(
   config: Pick<RoundDoc, 'scoringType' | 'assignedJudgeIds'>

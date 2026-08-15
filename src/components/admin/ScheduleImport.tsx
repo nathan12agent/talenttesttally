@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import { parseScheduleCsv } from '../../lib/scheduleParser';
 import { getOffStageJudgeAssignments, createEvent, createRound } from '../../lib/firestore';
-import type { EventDoc, JudgeDoc } from '../../types';
+import type { JudgeDoc } from '../../types';
 
 interface ScheduleImportProps {
   judges: JudgeDoc[];

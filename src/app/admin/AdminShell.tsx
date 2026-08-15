@@ -230,7 +230,7 @@ export function AdminShell({ adminPin }: AdminShellProps) {
       {activeTab === 'control' && (
         <div className="flex flex-col gap-6">
           <ConnectionStatusPanel judges={judges} />
-          <LiveControl events={events} judges={judges} />
+          <LiveControl events={events} />
         </div>
       )}
 
