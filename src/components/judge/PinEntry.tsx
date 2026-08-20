@@ -30,12 +30,12 @@ export function PinEntry({ onSuccess }: PinEntryProps) {
     setError('');
     setLoading(true);
     try {
-      const judge = tokenJudge ?? (await getJudgeByPin(pin));
+            const judge = tokenJudge ?? (await getJudgeByPin(pin.trim()));
       if (!judge) {
         setError('Invalid PIN. Please try again.');
         return;
       }
-      if (tokenJudge && tokenJudge.pin !== pin) {
+            if (tokenJudge && tokenJudge.pin !== pin.trim()) {
         setError('PIN does not match this device link.');
         return;
       }
