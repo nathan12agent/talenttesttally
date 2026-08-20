@@ -18,6 +18,11 @@ const withPWA = withPWAInit({
   },
 });
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  eslint: {
+    // ESLint runs separately in CI; don't block the Vercel build
+    ignoreDuringBuilds: true,
+  },
+};
 
 export default withPWA(nextConfig);
