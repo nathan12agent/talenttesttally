@@ -7,6 +7,9 @@ import { useJudgeHeartbeat } from '../../hooks/useJudgeHeartbeat';
 import { PinEntry } from '../../components/judge/PinEntry';
 import { RoundList } from '../../components/judge/RoundList';
 
+// Force dynamic rendering — this page uses Firebase (browser-only)
+export const dynamic = 'force-dynamic';
+
 export default function JudgePage() {
   const { judgeId, judgeName, setSession } = useJudgeSession();
   useJudgeHeartbeat(judgeId);

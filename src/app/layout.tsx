@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -13,20 +13,21 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#1a56db",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
   title: "Live Judge Scoring",
   description: "Real-time competition scoring app",
   manifest: "/manifest.json",
-  themeColor: "#1a56db",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Live Judge Scoring",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
   },
 };
 
