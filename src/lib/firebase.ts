@@ -16,34 +16,32 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? '',
 };
 
-// Singleton — guard against multiple initialisations (HMR in dev)
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Only initialize Firebase when running in the browser.
+// During SSR/build, return stub objects so imports don't crash.
+const isBrowser = typeof window !== 'undefined';
 
-const auth = getAuth(app);
+let app: ReturnType<typeof initializeApp>;
+let auth: ReturnType<typeof getAuth>;
+let db: ReturnType<typeof getFirestore>;
 
-// Firestore: only call initializeFirestore once per app instance.
-// On HMR reload the module re-runs but the app is already initialised,
-// so fall back to getFirestore to avoid "already initialised" errors.
-function getDb() {
-  if (typeof window === 'undefined') {
-    // SSR / build: plain instance, no persistence
-    try {
-      return initializeFirestore(app, {});
-    } catch {
-      return getFirestore(app);
-    }
-  }
+if (isBrowser) {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  auth = getAuth(app);
   try {
-    return initializeFirestore(app, {
+    db = initializeFirestore(app, {
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager(),
       }),
     });
   } catch {
-    return getFirestore(app);
+    db = getFirestore(app);
   }
+} else {
+  // SSR stub — Firebase is browser-only in this app.
+  // Pages that use Firebase must be client components or force-dynamic.
+  app = {} as ReturnType<typeof initializeApp>;
+  auth = {} as ReturnType<typeof getAuth>;
+  db = {} as ReturnType<typeof getFirestore>;
 }
-
-const db = getDb();
 
 export { app, auth, db };
