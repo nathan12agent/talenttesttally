@@ -5,9 +5,8 @@ import { useRounds } from '../../hooks/useRounds';
 import { useParticipants } from '../../hooks/useParticipants';
 import { useScores } from '../../hooks/useScores';
 import { computeRoundScore, computeCumulativeTotal } from '../../lib/scoring';
+import { ChestBadge } from '../shared/ChestBadge';
 import type { Group, EventDoc, JudgeDoc, RoundDoc, ParticipantDoc, ScoreDoc } from '../../types';
-
-// ─── ResultsDashboard props ───────────────────────────────────────────────────
 
 interface ResultsDashboardProps {
   group: Group | 'all';
@@ -15,8 +14,72 @@ interface ResultsDashboardProps {
   judges: JudgeDoc[];
 }
 
+// ─── Podium ───────────────────────────────────────────────────────────────────
+
+interface PodiumParticipant {
+  chestNo: string;
+  name: string;
+  score: number;
+  rank: 1 | 2 | 3;
+}
+
+const PODIUM_HEIGHT: Record<1 | 2 | 3, string> = {
+  1: 'h-28',
+  2: 'h-20',
+  3: 'h-14',
+};
+
+const PODIUM_COLOR: Record<1 | 2 | 3, string> = {
+  1: 'bg-podium-gold',
+  2: 'bg-podium-silver',
+  3: 'bg-podium-bronze',
+};
+
+const PODIUM_LABEL: Record<1 | 2 | 3, string> = {
+  1: '1st',
+  2: '2nd',
+  3: '3rd',
+};
+
+function PodiumView({ top3 }: { top3: PodiumParticipant[] }) {
+  // Reorder to: 2nd, 1st, 3rd for visual podium layout
+  const order: Array<1 | 2 | 3> = [2, 1, 3];
+  const byRank = Object.fromEntries(top3.map((p) => [p.rank, p])) as Record<1 | 2 | 3, PodiumParticipant | undefined>;
+
+  return (
+    <div className="rounded-xl bg-stage-charcoal border border-ink-muted/10 p-6 mb-6">
+      <h3 className="font-display text-2xl text-spotlight-gold tracking-wide mb-6 text-center">
+        Podium
+      </h3>
+      <div className="flex items-end justify-center gap-3">
+        {order.map((rank) => {
+          const participant = byRank[rank];
+          if (!participant) return null;
+          return (
+            <div key={rank} className="flex flex-col items-center gap-2 flex-1 max-w-[120px]">
+              {/* Chest badge above column */}
+              <ChestBadge chestNo={participant.chestNo} size="md" isPodium rank={rank} />
+              <p className="text-xs text-ink font-medium text-center truncate w-full px-1">
+                {participant.name}
+              </p>
+              <p className="font-display text-xl text-spotlight-gold">
+                {participant.score.toFixed(2)}
+              </p>
+              {/* Podium column */}
+              <div
+                className={`w-full rounded-t-md ${PODIUM_COLOR[rank]} ${PODIUM_HEIGHT[rank]} flex items-center justify-center`}
+              >
+                <span className="font-display text-stage-black text-lg">{PODIUM_LABEL[rank]}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── RoundScoreTable ──────────────────────────────────────────────────────────
-// Inner component so it can call useScores per round (Rules of Hooks)
 
 interface RoundScoreTableProps {
   round: RoundDoc;
@@ -31,76 +94,70 @@ function RoundScoreTable({ round, participants, events, judges }: RoundScoreTabl
   const event = events.find((e) => e.id === round.eventId);
   const eventName = event?.name ?? round.eventId;
 
-  // Judges assigned to this round, in stable order
   const roundJudges = judges.filter((j) => round.assignedJudgeIds.includes(j.id));
 
-  // Participants that belong to this round, sorted by chest number
   const roundParticipants = participants
     .filter((p) => round.participantChestNos.includes(p.chestNo))
     .sort((a, b) => Number(a.chestNo) - Number(b.chestNo));
 
-  // Distinct judge IDs that have submitted at least one score for this round
   const submittedJudgeIds = new Set(scores.map((s) => s.judgeId));
   const submitted = submittedJudgeIds.size;
   const expected = round.assignedJudgeIds.length;
 
   return (
     <div className="mb-8">
-      {/* Round heading */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2">
-        <h3 className="text-lg font-semibold text-gray-800">
+        <h3 className="font-display text-xl text-ink tracking-wide">
           {eventName} — {round.group}
         </h3>
         <span
           className={`text-xs font-medium px-2 py-0.5 rounded-full w-fit ${
             round.status === 'locked'
-              ? 'bg-gray-100 text-gray-600'
-              : 'bg-green-100 text-green-700'
+              ? 'bg-ink-muted/10 text-ink-muted'
+              : 'bg-spotlight-gold/20 text-spotlight-gold'
           }`}
         >
           {round.status === 'locked' ? '🔒 Locked' : '● Live'}
         </span>
       </div>
 
-      {/* Submission count */}
-      <p className="text-sm text-gray-500 mb-3">
+      <p className="text-xs text-ink-muted mb-3">
         {submitted} of {expected} judge{expected !== 1 ? 's' : ''} submitted
       </p>
 
-      {/* Score table — horizontally scrollable on small screens */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <div className="overflow-x-auto rounded-lg border border-ink-muted/10">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-stage-charcoal border-b border-ink-muted/10">
             <tr>
-              <th className="px-3 py-2 text-left font-medium text-gray-600 whitespace-nowrap">
+              <th className="px-3 py-2 text-left font-medium text-ink-muted whitespace-nowrap text-xs uppercase tracking-wider">
                 Chest No
               </th>
-              <th className="px-3 py-2 text-left font-medium text-gray-600">Name</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted text-xs uppercase tracking-wider">Name</th>
               {roundJudges.map((judge) => (
                 <th
                   key={judge.id}
-                  className="px-3 py-2 text-center font-medium text-gray-600 whitespace-nowrap"
+                  className="px-3 py-2 text-center font-medium text-ink-muted whitespace-nowrap text-xs uppercase tracking-wider"
                 >
                   {judge.name}
                 </th>
               ))}
-              <th className="px-3 py-2 text-center font-medium text-gray-700 whitespace-nowrap bg-gray-100">
+              <th className="px-3 py-2 text-center font-medium text-spotlight-gold whitespace-nowrap bg-stage-black text-xs uppercase tracking-wider">
                 Score
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody>
             {roundParticipants.length === 0 ? (
               <tr>
                 <td
                   colSpan={2 + roundJudges.length + 1}
-                  className="px-3 py-4 text-center text-gray-400"
+                  className="px-3 py-4 text-center text-ink-muted"
                 >
                   No participants in this round.
                 </td>
               </tr>
             ) : (
-              roundParticipants.map((participant) => {
+              roundParticipants.map((participant, rowIdx) => {
                 const judgeScores = roundJudges.map((judge) => {
                   const scoreDoc = scores.find(
                     (s) => s.chestNo === participant.chestNo && s.judgeId === judge.id,
@@ -110,30 +167,31 @@ function RoundScoreTable({ round, participants, events, judges }: RoundScoreTabl
 
                 const submittedScores = judgeScores.filter((s): s is number => s !== null);
                 const finalScore = computeRoundScore(submittedScores, round.scoringType);
+                const rowBg = rowIdx % 2 === 0 ? 'bg-stage-black' : 'bg-stage-charcoal';
 
                 return (
-                  <tr key={participant.chestNo} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 font-mono text-gray-700 whitespace-nowrap">
+                  <tr key={participant.chestNo} className={rowBg}>
+                    <td className="px-3 py-2 font-mono text-ink-muted whitespace-nowrap text-xs">
                       {participant.chestNo}
                     </td>
-                    <td className="px-3 py-2 text-gray-800">{participant.name}</td>
+                    <td className="px-3 py-2 text-ink text-xs">{participant.name}</td>
                     {judgeScores.map((score, idx) => (
                       <td
                         key={roundJudges[idx].id}
-                        className="px-3 py-2 text-center text-gray-700"
+                        className="px-3 py-2 text-center text-ink text-xs"
                       >
                         {score !== null ? (
                           score.toFixed(1)
                         ) : (
-                          <span className="text-gray-300">—</span>
+                          <span className="text-ink-muted/40">—</span>
                         )}
                       </td>
                     ))}
-                    <td className="px-3 py-2 text-center font-semibold text-gray-800 bg-gray-50 whitespace-nowrap">
+                    <td className="px-3 py-2 text-center font-bold text-spotlight-gold bg-stage-black whitespace-nowrap text-sm">
                       {submittedScores.length > 0 ? (
                         finalScore.toFixed(2)
                       ) : (
-                        <span className="text-gray-300">—</span>
+                        <span className="text-ink-muted/40">—</span>
                       )}
                     </td>
                   </tr>
@@ -148,18 +206,13 @@ function RoundScoreTable({ round, participants, events, judges }: RoundScoreTabl
 }
 
 // ─── LockedRoundScoreCollector ────────────────────────────────────────────────
-// Renders nothing visible; calls useScores for one locked round and propagates
-// updates to the parent via a stable callback.
 
 interface LockedRoundScoreCollectorProps {
   roundId: string;
   onScoresUpdate: (roundId: string, scores: ScoreDoc[]) => void;
 }
 
-function LockedRoundScoreCollector({
-  roundId,
-  onScoresUpdate,
-}: LockedRoundScoreCollectorProps) {
+function LockedRoundScoreCollector({ roundId, onScoresUpdate }: LockedRoundScoreCollectorProps) {
   const scores = useScores(roundId);
 
   useEffect(() => {
@@ -170,8 +223,6 @@ function LockedRoundScoreCollector({
 }
 
 // ─── CumulativeTotalsSection ──────────────────────────────────────────────────
-// Renders one LockedRoundScoreCollector per locked round (each calls useScores),
-// accumulates all scores in state, then renders the totals table.
 
 interface CumulativeTotalsSectionProps {
   lockedRounds: RoundDoc[];
@@ -179,24 +230,16 @@ interface CumulativeTotalsSectionProps {
   judges: JudgeDoc[];
 }
 
-function CumulativeTotalsSection({
-  lockedRounds,
-  participants,
-  judges,
-}: CumulativeTotalsSectionProps) {
-  // Map of roundId → ScoreDoc[] — updated by LockedRoundScoreCollector children
+function CumulativeTotalsSection({ lockedRounds, participants, judges }: CumulativeTotalsSectionProps) {
   const [roundScoresMap, setRoundScoresMap] = useState<Record<string, ScoreDoc[]>>({});
 
-  // Stable callback so child useEffects don't loop
   const handleScoresUpdate = (roundId: string, scores: ScoreDoc[]) => {
     setRoundScoresMap((prev) => {
-      // Avoid unnecessary re-renders when scores haven't changed
       if (prev[roundId] === scores) return prev;
       return { ...prev, [roundId]: scores };
     });
   };
 
-  // Compute cumulative total per participant across all locked rounds
   const totals = participants.map((participant) => {
     const perRoundScores = lockedRounds.map((round) => {
       const scores = roundScoresMap[round.id] ?? [];
@@ -204,9 +247,7 @@ function CumulativeTotalsSection({
       const submittedScores = roundJudges
         .map(
           (judge) =>
-            scores.find(
-              (s) => s.chestNo === participant.chestNo && s.judgeId === judge.id,
-            )?.score,
+            scores.find((s) => s.chestNo === participant.chestNo && s.judgeId === judge.id)?.score,
         )
         .filter((s): s is number => s !== undefined);
       return computeRoundScore(submittedScores, round.scoringType);
@@ -217,12 +258,22 @@ function CumulativeTotalsSection({
     };
   });
 
-  // Sort by total descending
   const sorted = [...totals].sort((a, b) => b.total - a.total);
+
+  // Build top 3 for podium
+  const top3: Array<{ chestNo: string; name: string; score: number; rank: 1 | 2 | 3 }> = [];
+  for (let i = 0; i < Math.min(3, sorted.length); i++) {
+    const { participant, total } = sorted[i];
+    top3.push({
+      chestNo: participant.chestNo,
+      name: participant.name,
+      score: total,
+      rank: (i + 1) as 1 | 2 | 3,
+    });
+  }
 
   return (
     <>
-      {/* Hidden score collectors — one per locked round */}
       {lockedRounds.map((round) => (
         <LockedRoundScoreCollector
           key={round.id}
@@ -231,43 +282,49 @@ function CumulativeTotalsSection({
         />
       ))}
 
-      {/* Totals table */}
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      {/* Podium */}
+      {top3.length >= 2 && <PodiumView top3={top3} />}
+
+      {/* Cumulative totals table */}
+      <div className="overflow-x-auto rounded-lg border border-ink-muted/10">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-stage-charcoal border-b border-ink-muted/10">
             <tr>
-              <th className="px-3 py-2 text-left font-medium text-gray-600 whitespace-nowrap">
+              <th className="px-3 py-2 text-left font-medium text-ink-muted whitespace-nowrap text-xs uppercase tracking-wider">
                 Rank
               </th>
-              <th className="px-3 py-2 text-left font-medium text-gray-600 whitespace-nowrap">
+              <th className="px-3 py-2 text-left font-medium text-ink-muted whitespace-nowrap text-xs uppercase tracking-wider">
                 Chest No
               </th>
-              <th className="px-3 py-2 text-left font-medium text-gray-600">Name</th>
-              <th className="px-3 py-2 text-left font-medium text-gray-600">Group</th>
-              <th className="px-3 py-2 text-center font-medium text-gray-700 whitespace-nowrap bg-gray-100">
+              <th className="px-3 py-2 text-left font-medium text-ink-muted text-xs uppercase tracking-wider">Name</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted text-xs uppercase tracking-wider">Group</th>
+              <th className="px-3 py-2 text-center font-medium text-spotlight-gold whitespace-nowrap bg-stage-black text-xs uppercase tracking-wider">
                 Total
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-4 text-center text-gray-400">
+                <td colSpan={5} className="px-3 py-4 text-center text-ink-muted">
                   No results yet.
                 </td>
               </tr>
             ) : (
-              sorted.map(({ participant, total }, idx) => (
-                <tr key={participant.chestNo} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 text-gray-500 font-medium">{idx + 1}</td>
-                  <td className="px-3 py-2 font-mono text-gray-700">{participant.chestNo}</td>
-                  <td className="px-3 py-2 text-gray-800">{participant.name}</td>
-                  <td className="px-3 py-2 text-gray-600">{participant.group}</td>
-                  <td className="px-3 py-2 text-center font-bold text-gray-900 bg-gray-50">
-                    {total.toFixed(2)}
-                  </td>
-                </tr>
-              ))
+              sorted.map(({ participant, total }, idx) => {
+                const rowBg = idx % 2 === 0 ? 'bg-stage-black' : 'bg-stage-charcoal';
+                return (
+                  <tr key={participant.chestNo} className={rowBg}>
+                    <td className="px-3 py-2 text-ink-muted font-medium text-xs">{idx + 1}</td>
+                    <td className="px-3 py-2 font-mono text-ink-muted text-xs">{participant.chestNo}</td>
+                    <td className="px-3 py-2 text-ink text-xs">{participant.name}</td>
+                    <td className="px-3 py-2 text-ink-muted text-xs">{participant.group}</td>
+                    <td className="px-3 py-2 text-center font-bold text-spotlight-gold bg-stage-black text-sm">
+                      {total.toFixed(2)}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -282,24 +339,21 @@ export function ResultsDashboard({ group, events, judges }: ResultsDashboardProp
   const allRounds = useRounds();
   const allParticipants = useParticipants();
 
-  // Filter to live/locked rounds, optionally narrowed by group
   const activeRounds = allRounds.filter(
     (r) =>
       (r.status === 'live' || r.status === 'locked') &&
       (group === 'all' || r.group === group),
   );
 
-  // Filter participants to selected group
   const participants = allParticipants.filter(
     (p) => group === 'all' || p.group === group,
   );
 
-  // Only locked rounds contribute to cumulative totals
   const lockedRounds = activeRounds.filter((r) => r.status === 'locked');
 
   if (activeRounds.length === 0) {
     return (
-      <div className="py-12 text-center text-gray-500 text-base">
+      <div className="py-12 text-center text-ink-muted text-base">
         No live or locked rounds yet.
       </div>
     );
@@ -307,7 +361,6 @@ export function ResultsDashboard({ group, events, judges }: ResultsDashboardProp
 
   return (
     <div className="space-y-2">
-      {/* Per-round score tables */}
       {activeRounds.map((round) => (
         <RoundScoreTable
           key={round.id}
@@ -318,10 +371,9 @@ export function ResultsDashboard({ group, events, judges }: ResultsDashboardProp
         />
       ))}
 
-      {/* Cumulative totals — only when at least one round is locked */}
       {lockedRounds.length > 0 && (
-        <div className="pt-4 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">
+        <div className="pt-4 border-t border-ink-muted/10">
+          <h3 className="font-display text-2xl text-ink tracking-wide mb-4">
             Cumulative Totals
           </h3>
           <CumulativeTotalsSection

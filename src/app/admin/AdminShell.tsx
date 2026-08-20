@@ -81,10 +81,13 @@ function PinScreen({
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-semibold text-gray-900 text-center mb-8">Admin Login</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-stage-black p-6">
+      <div className="w-full max-w-sm flex flex-col items-center gap-8">
+        <div className="text-center">
+          <p className="font-display text-spotlight-gold text-6xl tracking-widest leading-none">ADMIN</p>
+          <p className="font-display text-ink text-3xl tracking-widest leading-none mt-1">LOGIN</p>
+        </div>
+        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
           <input
             type="password"
             value={pin}
@@ -92,17 +95,17 @@ function PinScreen({
             placeholder="Enter PIN"
             disabled={loading}
             aria-label="Admin PIN"
-            className="w-full min-h-[48px] px-4 rounded-lg border border-gray-300 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full min-h-[56px] px-4 rounded-xl bg-paper text-stage-black text-xl text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-spotlight-gold disabled:opacity-50"
           />
           {error && (
-            <p role="alert" className="text-red-600 text-sm text-center">
+            <p role="alert" className="text-curtain-red text-sm text-center font-medium">
               {error}
             </p>
           )}
           <button
             type="submit"
             disabled={loading || pin.length === 0}
-            className="w-full min-h-[48px] bg-blue-600 text-white text-lg font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full min-h-[52px] bg-spotlight-gold text-stage-black text-lg font-bold rounded-xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity focus:outline-none focus:ring-2 focus:ring-spotlight-gold focus:ring-offset-2 focus:ring-offset-stage-black"
           >
             {loading ? 'Signing in…' : 'Enter'}
           </button>
@@ -118,7 +121,7 @@ export function AdminShell({ adminPin }: AdminShellProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [activeTab, setActiveTab] = useState<ActiveTab>('participants');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('control');
   const [groupFilter, setGroupFilter] = useState<Group | 'all'>('all');
   const [events, setEvents] = useState<EventDoc[]>([]);
   const [judges, setJudges] = useState<JudgeDoc[]>([]);
@@ -126,7 +129,6 @@ export function AdminShell({ adminPin }: AdminShellProps) {
   const [allRounds, setAllRounds] = useState<RoundDoc[]>([]);
   const [allScores, setAllScores] = useState<ScoreDoc[]>([]);
 
-  // Re-establish anonymous auth on mount, then check saved session
   useEffect(() => {
     signInAnonymouslyWithRetry()
       .then(() => {
@@ -139,7 +141,6 @@ export function AdminShell({ adminPin }: AdminShellProps) {
       .finally(() => setAuthReady(true));
   }, []);
 
-  // Start Firestore subscriptions only after authenticated
   useEffect(() => {
     if (!isAdmin) return;
 
@@ -166,19 +167,22 @@ export function AdminShell({ adminPin }: AdminShellProps) {
 
   if (!authReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-sm text-gray-500">Connecting…</p>
+      <div className="min-h-screen flex items-center justify-center bg-stage-black">
+        <p className="text-sm text-ink-muted">Connecting…</p>
       </div>
     );
   }
 
   if (authError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-stage-black p-6">
         <div className="text-center max-w-sm">
-          <p className="text-red-600 mb-2 font-medium">Connection failed</p>
-          <p className="text-sm text-gray-600 mb-4">{authError}</p>
-          <button onClick={() => window.location.reload()} className="min-h-[48px] px-6 bg-blue-600 text-white rounded-lg font-medium">
+          <p className="text-curtain-red mb-2 font-medium">Connection failed</p>
+          <p className="text-sm text-ink-muted mb-4">{authError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="min-h-[48px] px-6 bg-spotlight-gold text-stage-black rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-spotlight-gold"
+          >
             Retry
           </button>
         </div>
@@ -191,120 +195,122 @@ export function AdminShell({ adminPin }: AdminShellProps) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Admin</h1>
+    <div className="min-h-screen bg-stage-black">
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <h1 className="font-display text-4xl text-spotlight-gold tracking-wide mb-6">Admin</h1>
 
-      {/* Tab bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 mb-6 -mx-4 px-4">
-        <div className="flex overflow-x-auto gap-1 scrollbar-none">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`min-h-[48px] px-4 whitespace-nowrap text-sm font-medium border-b-2 transition-colors flex-shrink-0 ${
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Participants ── */}
-      {activeTab === 'participants' && (
-        <div className="flex flex-col gap-6">
-          <ParticipantImport />
-          <ParticipantTable />
-        </div>
-      )}
-
-      {/* ── Events & Rounds ── */}
-      {activeTab === 'rounds' && (
-        <div className="flex flex-col gap-8">
-          <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Import Schedule (CSV)</h2>
-            <ScheduleImport judges={judges} onImported={() => {}} />
-          </section>
-          <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Create Event Manually</h2>
-            <EventBuilder events={events} onEventCreated={() => {}} />
-          </section>
-          <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">All Rounds</h2>
-            <AdminRoundList events={events} judges={judges} />
-          </section>
-          <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Create Round Manually</h2>
-            <RoundBuilder events={events} judges={judges} participants={participants} onSave={() => {}} />
-          </section>
-        </div>
-      )}
-
-      {/* ── Live Control ── */}
-      {activeTab === 'control' && (
-        <div className="flex flex-col gap-6">
-          <ConnectionStatusPanel judges={judges} />
-          <LiveControl events={events} />
-        </div>
-      )}
-
-      {/* ── Results ── */}
-      {activeTab === 'results' && (
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="group-filter" className="text-sm font-medium text-gray-700">
-              Filter by group
-            </label>
-            <select
-              id="group-filter"
-              value={groupFilter}
-              onChange={(e) => setGroupFilter(e.target.value as Group | 'all')}
-              className="min-h-[48px] px-4 rounded-lg border border-gray-300 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-xs"
-            >
-              {GROUP_OPTIONS.map((g) => (
-                <option key={g} value={g}>{g === 'all' ? 'All groups' : g}</option>
-              ))}
-            </select>
+        {/* Tab bar */}
+        <div className="sticky top-0 z-10 bg-stage-charcoal border-b border-ink-muted/20 mb-6 -mx-4 px-4">
+          <div className="flex overflow-x-auto gap-1 scrollbar-none">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`min-h-[48px] px-4 whitespace-nowrap text-sm font-medium border-b-2 transition-colors flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-spotlight-gold ${
+                  activeTab === tab.id
+                    ? 'border-spotlight-gold text-spotlight-gold'
+                    : 'border-transparent text-ink-muted hover:text-ink hover:border-ink-muted/40'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <ResultsDashboard group={groupFilter} events={events} judges={judges} />
-          <ExportButton group={groupFilter} rounds={allRounds} scores={allScores} participants={participants} />
         </div>
-      )}
 
-      {/* ── Points ── */}
-      {activeTab === 'points' && (
-        <div className="flex flex-col gap-8">
-          <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Points Configuration</h2>
-            <PointsConfigEditor events={events} />
-          </section>
-          <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Points Leaderboard</h2>
-            <PointsDashboard participants={participants} />
-          </section>
-        </div>
-      )}
+        {/* ── Participants ── */}
+        {activeTab === 'participants' && (
+          <div className="flex flex-col gap-6">
+            <ParticipantImport />
+            <ParticipantTable />
+          </div>
+        )}
 
-      {/* ── Settings ── */}
-      {activeTab === 'settings' && (
-        <div className="flex flex-col gap-8">
-          <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Seed Sample Data</h2>
-            <SeedButton />
-          </section>
-          <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Off-Stage Judge Assignments</h2>
-            <OffStageJudgeAssignments judges={judges} />
-          </section>
-          <section>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Add Judge Device (QR Code)</h2>
-            <AddJudgeDevice judges={judges} />
-          </section>
-        </div>
-      )}
+        {/* ── Events & Rounds ── */}
+        {activeTab === 'rounds' && (
+          <div className="flex flex-col gap-8">
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">Import Schedule (CSV)</h2>
+              <ScheduleImport judges={judges} onImported={() => {}} />
+            </section>
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">Create Event Manually</h2>
+              <EventBuilder events={events} onEventCreated={() => {}} />
+            </section>
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">All Rounds</h2>
+              <AdminRoundList events={events} judges={judges} />
+            </section>
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">Create Round Manually</h2>
+              <RoundBuilder events={events} judges={judges} participants={participants} onSave={() => {}} />
+            </section>
+          </div>
+        )}
+
+        {/* ── Live Control ── */}
+        {activeTab === 'control' && (
+          <div className="flex flex-col gap-6">
+            <ConnectionStatusPanel judges={judges} />
+            <LiveControl events={events} />
+          </div>
+        )}
+
+        {/* ── Results ── */}
+        {activeTab === 'results' && (
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="group-filter" className="text-sm font-medium text-ink-muted">
+                Filter by group
+              </label>
+              <select
+                id="group-filter"
+                value={groupFilter}
+                onChange={(e) => setGroupFilter(e.target.value as Group | 'all')}
+                className="min-h-[48px] px-4 rounded-lg border border-ink-muted/30 text-base bg-stage-charcoal text-ink focus:outline-none focus:ring-2 focus:ring-spotlight-gold max-w-xs"
+              >
+                {GROUP_OPTIONS.map((g) => (
+                  <option key={g} value={g}>{g === 'all' ? 'All groups' : g}</option>
+                ))}
+              </select>
+            </div>
+            <ResultsDashboard group={groupFilter} events={events} judges={judges} />
+            <ExportButton group={groupFilter} rounds={allRounds} scores={allScores} participants={participants} />
+          </div>
+        )}
+
+        {/* ── Points ── */}
+        {activeTab === 'points' && (
+          <div className="flex flex-col gap-8">
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">Points Configuration</h2>
+              <PointsConfigEditor events={events} />
+            </section>
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">Points Leaderboard</h2>
+              <PointsDashboard participants={participants} />
+            </section>
+          </div>
+        )}
+
+        {/* ── Settings ── */}
+        {activeTab === 'settings' && (
+          <div className="flex flex-col gap-8">
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">Seed Sample Data</h2>
+              <SeedButton />
+            </section>
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">Off-Stage Judge Assignments</h2>
+              <OffStageJudgeAssignments judges={judges} />
+            </section>
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">Add Judge Device (QR Code)</h2>
+              <AddJudgeDevice judges={judges} />
+            </section>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

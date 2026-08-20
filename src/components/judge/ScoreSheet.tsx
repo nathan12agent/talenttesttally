@@ -5,6 +5,7 @@ import { db } from '../../lib/firebase';
 import { useParticipants } from '../../hooks/useParticipants';
 import { useScores } from '../../hooks/useScores';
 import { ConnectivityBanner } from '../shared/ConnectivityBanner';
+import { ChestBadge } from '../shared/ChestBadge';
 import { ScoreRow } from './ScoreRow';
 import type { ParticipantDoc, RoundDoc } from '../../types';
 
@@ -16,10 +17,8 @@ interface ScoreSheetProps {
 
 export function ScoreSheet({ round, judgeId, onBack }: ScoreSheetProps) {
   const [eventName, setEventName] = useState<string | null>(null);
-  // For sequential (on-stage) mode: track which participant is "current"
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Fetch the event name from Firestore once on mount / when eventId changes
   useEffect(() => {
     if (!round.eventId) return;
     getDoc(doc(db, 'events', round.eventId)).then((snap) => {
@@ -32,7 +31,6 @@ export function ScoreSheet({ round, judgeId, onBack }: ScoreSheetProps) {
   const allParticipants = useParticipants();
   const scores = useScores(round.id);
 
-  // Filter to participants in this round, sorted by chestNo
   const participants: ParticipantDoc[] = allParticipants
     .filter((p) => round.participantChestNos.includes(p.chestNo))
     .sort((a, b) => Number(a.chestNo) - Number(b.chestNo));
@@ -41,8 +39,7 @@ export function ScoreSheet({ round, judgeId, onBack }: ScoreSheetProps) {
   const scoreMin = round.scoreMin ?? 0;
   const scoreMax = round.scoreMax ?? 100;
 
-  // Build the title: "Solo Singing — Sub Jr" or fall back to round.id
-  const title = eventName ? `${eventName} — ${round.group}` : round.id;
+  const title = eventName ? `${eventName}` : round.id;
 
   const header = (
     <>
@@ -50,18 +47,26 @@ export function ScoreSheet({ round, judgeId, onBack }: ScoreSheetProps) {
       <div className="max-w-lg mx-auto px-4 pt-4 pb-2">
         <button
           onClick={onBack}
-          className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+          className="flex items-center gap-1 text-sm text-spotlight-gold hover:opacity-80 mb-4 focus:outline-none focus:ring-2 focus:ring-spotlight-gold rounded"
           aria-label="Back to round list"
         >
           ← Back
         </button>
-        <h1 className="text-xl font-semibold text-gray-900 mb-1">{title}</h1>
+
+        <h1 className="font-display text-4xl text-ink tracking-wide leading-tight">
+          {title}
+        </h1>
+        <p className="font-display text-xl text-spotlight-gold tracking-widest mt-0.5">
+          {round.group}
+        </p>
+
         {round.batchMode && (
-          <p className="text-xs text-purple-600 mb-1">Batch mode — score in any order</p>
+          <p className="text-xs text-ink-muted mt-1">Batch mode — score in any order</p>
         )}
+
         {isLocked && (
           <div
-            className="mb-4 px-4 py-3 rounded bg-yellow-100 border border-yellow-300 text-yellow-800 text-sm font-medium"
+            className="mt-3 mb-1 px-4 py-3 rounded-lg bg-stage-charcoal border border-ink-muted/30 text-ink-muted text-sm font-medium"
             role="alert"
           >
             🔒 Scores are final — this round is locked
@@ -71,32 +76,41 @@ export function ScoreSheet({ round, judgeId, onBack }: ScoreSheetProps) {
     </>
   );
 
-  // ── Batch mode (off-stage): show all participants at once ───────────────────
+  // ── Batch mode ──────────────────────────────────────────────────────────────
   if (round.batchMode) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-stage-black">
         {header}
         <div className="max-w-lg mx-auto px-4 pb-8">
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-stage-charcoal rounded-xl overflow-hidden shadow-lg">
             {participants.length === 0 ? (
-              <p className="p-4 text-sm text-gray-500">No participants in this round.</p>
+              <p className="p-4 text-sm text-ink-muted">No participants in this round.</p>
             ) : (
               participants.map((p) => {
                 const existingScore = scores.find(
                   (s) => s.roundId === round.id && s.chestNo === p.chestNo && s.judgeId === judgeId,
                 );
                 return (
-                  <ScoreRow
-                    key={p.chestNo}
-                    roundId={round.id}
-                    chestNo={p.chestNo}
-                    participantName={p.name}
-                    judgeId={judgeId}
-                    isLocked={isLocked}
-                    scoreMin={scoreMin}
-                    scoreMax={scoreMax}
-                    existingScore={existingScore}
-                  />
+                  <div key={p.chestNo}>
+                    <div className="flex items-center gap-3 px-4 pt-4">
+                      <ChestBadge
+                        chestNo={p.chestNo}
+                        size="md"
+                        pulse={syncStatus_for(p.chestNo, scores, judgeId)}
+                      />
+                      <span className="text-ink font-medium text-sm">{p.name}</span>
+                    </div>
+                    <ScoreRow
+                      roundId={round.id}
+                      chestNo={p.chestNo}
+                      participantName={p.name}
+                      judgeId={judgeId}
+                      isLocked={isLocked}
+                      scoreMin={scoreMin}
+                      scoreMax={scoreMax}
+                      existingScore={existingScore}
+                    />
+                  </div>
                 );
               })
             )}
@@ -106,42 +120,54 @@ export function ScoreSheet({ round, judgeId, onBack }: ScoreSheetProps) {
     );
   }
 
-  // ── Sequential mode (on-stage): one participant at a time ──────────────────
+  // ── Sequential mode ─────────────────────────────────────────────────────────
   const safeIndex = Math.min(currentIndex, Math.max(0, participants.length - 1));
   const currentParticipant = participants[safeIndex] ?? null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-stage-black">
       {header}
       <div className="max-w-lg mx-auto px-4 pb-8">
         {participants.length === 0 ? (
-          <p className="p-4 text-sm text-gray-500">No participants in this round.</p>
+          <p className="p-4 text-sm text-ink-muted">No participants in this round.</p>
         ) : (
           <>
             {/* Navigation */}
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
                 disabled={safeIndex === 0}
-                className="min-h-[48px] px-4 text-sm font-medium text-blue-600 disabled:text-gray-300 focus:outline-none"
+                className="min-h-[48px] px-4 text-sm font-medium text-spotlight-gold disabled:text-ink-muted/40 focus:outline-none focus:ring-2 focus:ring-spotlight-gold rounded"
               >
                 ← Prev
               </button>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-ink-muted">
                 {safeIndex + 1} / {participants.length}
               </span>
               <button
                 onClick={() => setCurrentIndex((i) => Math.min(participants.length - 1, i + 1))}
                 disabled={safeIndex === participants.length - 1}
-                className="min-h-[48px] px-4 text-sm font-medium text-blue-600 disabled:text-gray-300 focus:outline-none"
+                className="min-h-[48px] px-4 text-sm font-medium text-spotlight-gold disabled:text-ink-muted/40 focus:outline-none focus:ring-2 focus:ring-spotlight-gold rounded"
               >
                 Next →
               </button>
             </div>
 
-            {/* Current participant score row */}
+            {/* Current participant */}
             {currentParticipant && (
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="bg-stage-charcoal rounded-xl overflow-hidden shadow-lg">
+                {/* Chest badge centered */}
+                <div className="flex flex-col items-center pt-6 pb-2 gap-2">
+                  <ChestBadge
+                    chestNo={currentParticipant.chestNo}
+                    size="lg"
+                    pulse={false}
+                  />
+                  <p className="text-ink font-medium text-base mt-1">
+                    {currentParticipant.name}
+                  </p>
+                </div>
+
                 <ScoreRow
                   key={currentParticipant.chestNo}
                   roundId={round.id}
@@ -165,4 +191,13 @@ export function ScoreSheet({ round, judgeId, onBack }: ScoreSheetProps) {
       </div>
     </div>
   );
+}
+
+/** Returns true if the judge already submitted for this chest (used for pulse trigger) */
+function syncStatus_for(
+  chestNo: string,
+  scores: ReturnType<typeof useScores>,
+  judgeId: string,
+): boolean {
+  return scores.some((s) => s.chestNo === chestNo && s.judgeId === judgeId);
 }

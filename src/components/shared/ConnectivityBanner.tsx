@@ -1,18 +1,33 @@
 'use client';
 
-import { useConnectionStatus } from '../../hooks/useConnectionStatus';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 export function ConnectivityBanner() {
-  const isConnected = useConnectionStatus();
+  const isOnline = useOnlineStatus();
 
   return (
     <div
       role="status"
-      className={`sticky top-0 z-10 text-center text-sm font-medium py-1.5 ${
-        isConnected ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-800'
-      }`}
+      aria-live="polite"
+      className="fixed top-3 right-3 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stage-charcoal border border-ink-muted/30 shadow-lg text-xs select-none"
     >
-      {isConnected ? '● Online' : '⏳ Offline — scores will sync when reconnected'}
+      {isOnline ? (
+        <>
+          <span
+            className="w-2 h-2 rounded-full bg-spotlight-gold shrink-0"
+            aria-hidden="true"
+          />
+          <span className="text-ink-muted font-medium">Live</span>
+        </>
+      ) : (
+        <>
+          <span
+            className="w-2 h-2 rounded-full bg-amber-400 shrink-0 animate-pulse"
+            aria-hidden="true"
+          />
+          <span className="text-ink font-medium">Reconnecting…</span>
+        </>
+      )}
     </div>
   );
 }

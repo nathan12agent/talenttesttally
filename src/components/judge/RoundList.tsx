@@ -16,15 +16,12 @@ export function RoundList({ judgeId, judgeName }: RoundListProps) {
   const [selectedRound, setSelectedRound] = useState<RoundDoc | null>(null);
   const [groupFilter, setGroupFilter] = useState<Group | typeof ALL_GROUPS>(ALL_GROUPS);
 
-  // Collect distinct groups that have at least one round
   const availableGroups = useMemo<Group[]>(() => {
     const seen = new Set<Group>();
     rounds.forEach((r) => seen.add(r.group));
     return Array.from(seen).sort();
   }, [rounds]);
 
-  // Determine whether to show a group switcher:
-  // show when there are batch-mode (off-stage) rounds in multiple groups
   const hasBatchMultiGroup =
     rounds.some((r) => r.batchMode) && availableGroups.length > 1;
 
@@ -44,22 +41,23 @@ export function RoundList({ judgeId, judgeName }: RoundListProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
+    <div className="min-h-screen bg-stage-black">
+      <div className="max-w-lg mx-auto px-4 pt-8 pb-8">
         {/* Greeting */}
-        <h1 className="text-2xl font-semibold text-gray-900 mb-4">
-          Welcome, {judgeName}
+        <h1 className="font-display text-5xl text-spotlight-gold tracking-wide mb-6">
+          Welcome,<br />
+          <span className="text-ink">{judgeName}</span>
         </h1>
 
-        {/* Group filter — only shown when off-stage judge covers multiple groups */}
+        {/* Group filter pills */}
         {hasBatchMultiGroup && (
-          <div className="mb-5 flex flex-wrap gap-2">
+          <div className="mb-6 flex flex-wrap gap-2">
             <button
               onClick={() => setGroupFilter(ALL_GROUPS)}
-              className={`min-h-[40px] px-3 rounded-full text-sm font-medium border transition-colors ${
+              className={`min-h-[40px] px-4 rounded-full text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-spotlight-gold ${
                 groupFilter === ALL_GROUPS
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                  ? 'bg-spotlight-gold text-stage-black border-spotlight-gold'
+                  : 'bg-transparent text-ink-muted border-ink-muted/40 hover:border-spotlight-gold hover:text-ink'
               }`}
             >
               All groups
@@ -68,10 +66,10 @@ export function RoundList({ judgeId, judgeName }: RoundListProps) {
               <button
                 key={g}
                 onClick={() => setGroupFilter(g)}
-                className={`min-h-[40px] px-3 rounded-full text-sm font-medium border transition-colors ${
+                className={`min-h-[40px] px-4 rounded-full text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-spotlight-gold ${
                   groupFilter === g
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
+                    ? 'bg-spotlight-gold text-stage-black border-spotlight-gold'
+                    : 'bg-transparent text-ink-muted border-ink-muted/40 hover:border-spotlight-gold hover:text-ink'
                 }`}
               >
                 {g}
@@ -80,39 +78,48 @@ export function RoundList({ judgeId, judgeName }: RoundListProps) {
           </div>
         )}
 
-        {/* No live rounds */}
+        {/* No rounds */}
         {filteredRounds.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center mt-12">
+          <p className="text-sm text-ink-muted text-center mt-16">
             No rounds are currently live. Please wait for the admin to start a round.
           </p>
         ) : (
-          <div>
-            {filteredRounds.map((round) => (
-              <div
-                key={round.id}
-                className="bg-white rounded-lg shadow-sm p-4 mb-3 border border-gray-100"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-base font-medium text-gray-900">
-                    {round.group}
-                  </p>
-                  {round.batchMode && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                      Batch
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-500 mb-4">
-                  {round.participantChestNos.length} participants
-                </p>
-                <button
-                  onClick={() => setSelectedRound(round)}
-                  className="w-full min-h-[48px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-medium rounded-lg px-4 py-3 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          <div className="flex flex-col gap-3">
+            {filteredRounds.map((round) => {
+              const isOnStage = !round.batchMode;
+              return (
+                <div
+                  key={round.id}
+                  className={`bg-stage-charcoal rounded-xl p-4 flex flex-col gap-3 border-l-4 ${
+                    isOnStage ? 'border-spotlight-gold' : 'border-curtain-red'
+                  }`}
                 >
-                  Score This Round →
-                </button>
-              </div>
-            ))}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl" aria-hidden="true">
+                      {isOnStage ? '🎯' : '📋'}
+                    </span>
+                    <p className="text-base font-semibold text-ink">
+                      {round.group}
+                    </p>
+                    {round.batchMode && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-curtain-red/20 text-curtain-red border border-curtain-red/30">
+                        Batch
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-ink-muted">
+                    {round.participantChestNos.length} participant
+                    {round.participantChestNos.length !== 1 ? 's' : ''}
+                  </p>
+                  <button
+                    onClick={() => setSelectedRound(round)}
+                    className="w-full min-h-[56px] bg-spotlight-gold text-stage-black text-sm font-bold rounded-lg hover:opacity-90 active:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-spotlight-gold focus:ring-offset-2 focus:ring-offset-stage-charcoal"
+                  >
+                    Score This Round →
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

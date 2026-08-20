@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,13 +7,18 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Spotlight / Backstage design system */
+  --stage-black: #16141C;
+  --stage-charcoal: #211E29;
+  --spotlight-gold: #E8B54B;
+  --curtain-red: #8B2635;
+  --podium-gold: #D4AF37;
+  --podium-silver: #B8BCC2;
+  --podium-bronze: #B08D57;
+  --paper: #F4F1EA;
+  --ink: #E9E6DD;
+  --ink-muted: #A29C8E;
 }
 
 body {
@@ -23,5 +30,63 @@ body {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .font-display {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    letter-spacing: 0.04em;
+  }
+}
+
+@layer components {
+  .chest-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: var(--stage-charcoal);
+    border: 2px solid var(--spotlight-gold);
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.06em;
+    min-width: 3rem;
+    text-align: center;
+  }
+}
+
+/* ── Keyframe animations ──────────────────────────────────────────────────── */
+
+@keyframes gold-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(232, 181, 75, 0.7); }
+  50%  { box-shadow: 0 0 0 12px rgba(232, 181, 75, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 181, 75, 0); }
+}
+
+@keyframes live-glow {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(232, 181, 75, 0.25); opacity: 1; }
+  50%       { box-shadow: 0 0 12px 4px rgba(232, 181, 75, 0.55); opacity: 0.85; }
+}
+
+.animate-gold-pulse {
+  animation: gold-pulse 0.7s ease-out forwards;
+}
+
+.animate-live-glow {
+  animation: live-glow 2s ease-in-out infinite;
+}
+
+/* ── Respect reduced-motion preference ───────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
