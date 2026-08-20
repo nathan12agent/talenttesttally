@@ -19,7 +19,7 @@ export function AddJudgeDevice({ judges }: AddJudgeDeviceProps) {
   const [selectedJudgeId, setSelectedJudgeId] = useState('');
 
   const selectedJudge = judges.find((j) => j.id === selectedJudgeId);
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== 'undefined' ? window.location.origin : '');
   const link = selectedJudge ? `${baseUrl}/judge?token=${selectedJudge.deviceLinkToken}` : '';
 
   return (
