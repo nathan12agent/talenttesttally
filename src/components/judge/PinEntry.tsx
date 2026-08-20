@@ -63,21 +63,19 @@ export function PinEntry({ onSuccess }: PinEntryProps) {
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
           {tokenJudge && (
             <p className="text-sm text-ink-muted text-center">
-              Confirm PIN for{' '}
+               Confirm password for{' '}
               <span className="font-medium text-ink">{tokenJudge.name}</span>
             </p>
           )}
 
           <input
             type="password"
-            inputMode="numeric"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
-            placeholder="4-digit PIN"
-            maxLength={4}
+            placeholder="Password"
             disabled={loading}
-            aria-label="Judge PIN"
-            className="w-full min-h-[64px] px-4 rounded-xl bg-paper text-stage-black text-3xl text-center tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-spotlight-gold disabled:opacity-50"
+            aria-label="Judge Password"
+            className="w-full min-h-[64px] px-4 rounded-xl bg-paper text-stage-black text-3xl text-center tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-spotlight-gold disabled:opacity-50"
           />
 
           {error && (
@@ -88,7 +86,7 @@ export function PinEntry({ onSuccess }: PinEntryProps) {
 
           <button
             type="submit"
-            disabled={loading || pin.length !== 4}
+            disabled={loading || pin.length === 0}
             className="w-full min-h-[56px] bg-spotlight-gold text-stage-black text-lg font-bold rounded-xl hover:opacity-90 active:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity focus:outline-none focus:ring-2 focus:ring-spotlight-gold focus:ring-offset-2 focus:ring-offset-stage-black"
           >
             {loading ? 'Checking…' : 'Continue'}

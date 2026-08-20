@@ -19,7 +19,8 @@ import { PointsDashboard } from '../../components/admin/PointsDashboard';
 import { PointsConfigEditor } from '../../components/admin/PointsConfigEditor';
 import { OffStageJudgeAssignments } from '../../components/admin/OffStageJudgeAssignments';
 import { AddJudgeDevice } from '../../components/admin/AddJudgeDevice';
-import { SeedButton } from '../../components/admin/SeedButton';
+import { ClearDataButton } from '../../components/admin/ClearDataButton';
+import { AddJudgeForm } from '../../components/admin/AddJudgeForm';
 import type { Group, EventDoc, JudgeDoc, RoundDoc, ScoreDoc, ParticipantDoc } from '../../types';
 
 type ActiveTab = 'participants' | 'rounds' | 'control' | 'results' | 'points' | 'settings';
@@ -297,8 +298,12 @@ export function AdminShell({ adminPin }: AdminShellProps) {
         {activeTab === 'settings' && (
           <div className="flex flex-col gap-8">
             <section>
-              <h2 className="font-display text-2xl text-ink mb-3">Seed Sample Data</h2>
-              <SeedButton />
+              <h2 className="font-display text-2xl text-ink mb-3">Add Judge</h2>
+              <AddJudgeForm />
+            </section>
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">Clear Data</h2>
+              <ClearDataButton />
             </section>
             <section>
               <h2 className="font-display text-2xl text-ink mb-3">Off-Stage Judge Assignments</h2>
