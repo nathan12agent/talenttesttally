@@ -62,7 +62,7 @@ function PinScreen({
       return;
     }
 
-    if (pin !== adminPin) {
+    if (pin.trim() !== adminPin.trim()) {
       setError('Incorrect admin PIN');
       return;
     }
@@ -191,14 +191,27 @@ export function AdminShell({ adminPin }: AdminShellProps) {
     );
   }
 
-  if (!isAdmin) {
+    if (!isAdmin) {
     return <PinScreen adminPin={adminPin} onSuccess={() => setIsAdmin(true)} />;
+  }
+
+  function handleAdminLogout() {
+    localStorage.removeItem('adminSession');
+    setIsAdmin(false);
   }
 
   return (
     <div className="min-h-screen bg-stage-black">
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <h1 className="font-display text-4xl text-spotlight-gold tracking-wide mb-6">Admin</h1>
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <h1 className="font-display text-4xl text-spotlight-gold tracking-wide">Admin</h1>
+          <button
+            onClick={handleAdminLogout}
+            className="min-h-[40px] px-4 mt-1 text-sm font-medium text-ink-muted border border-ink-muted/30 rounded-lg hover:text-ink hover:border-ink-muted/60 transition-colors flex-shrink-0"
+          >
+            Logout
+          </button>
+        </div>
 
         {/* Tab bar */}
         <div className="sticky top-0 z-10 bg-stage-charcoal border-b border-ink-muted/20 mb-6 -mx-4 px-4">

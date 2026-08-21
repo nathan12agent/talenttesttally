@@ -7,11 +7,12 @@ import type { Group, RoundDoc } from '../../types';
 interface RoundListProps {
   judgeId: string;
   judgeName: string;
+  onLogout: () => void;
 }
 
 const ALL_GROUPS = 'all' as const;
 
-export function RoundList({ judgeId, judgeName }: RoundListProps) {
+export function RoundList({ judgeId, judgeName, onLogout }: RoundListProps) {
   const rounds = useRounds(judgeId);
   const [selectedRound, setSelectedRound] = useState<RoundDoc | null>(null);
   const [groupFilter, setGroupFilter] = useState<Group | typeof ALL_GROUPS>(ALL_GROUPS);
@@ -44,10 +45,18 @@ export function RoundList({ judgeId, judgeName }: RoundListProps) {
     <div className="min-h-screen bg-stage-black">
       <div className="max-w-lg mx-auto px-4 pt-8 pb-8">
         {/* Greeting */}
-        <h1 className="font-display text-5xl text-spotlight-gold tracking-wide mb-6">
-          Welcome,<br />
-          <span className="text-ink">{judgeName}</span>
-        </h1>
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <h1 className="font-display text-5xl text-spotlight-gold tracking-wide">
+            Welcome,<br />
+            <span className="text-ink">{judgeName}</span>
+          </h1>
+          <button
+            onClick={onLogout}
+            className="min-h-[40px] px-4 mt-2 text-sm font-medium text-ink-muted border border-ink-muted/30 rounded-lg hover:text-ink hover:border-ink-muted/60 transition-colors flex-shrink-0"
+          >
+            Logout
+          </button>
+        </div>
 
         {/* Group filter pills */}
         {hasBatchMultiGroup && (

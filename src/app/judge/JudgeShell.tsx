@@ -8,7 +8,7 @@ import { PinEntry } from '../../components/judge/PinEntry';
 import { RoundList } from '../../components/judge/RoundList';
 
 export function JudgeShell() {
-  const { judgeId, judgeName, setSession } = useJudgeSession();
+  const { judgeId, judgeName, setSession, clearSession } = useJudgeSession();
   useJudgeHeartbeat(judgeId);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -66,5 +66,5 @@ export function JudgeShell() {
     );
   }
 
-  return <RoundList judgeId={judgeId} judgeName={judgeName ?? ''} />;
+  return <RoundList judgeId={judgeId} judgeName={judgeName ?? ''} onLogout={clearSession} />;
 }
