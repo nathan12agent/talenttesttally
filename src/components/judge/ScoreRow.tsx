@@ -46,7 +46,9 @@ export function ScoreRow({
     setValue((v) => clamp(v + 1));
   }
 
-  const handleSubmit = async () => {
+    const handleSubmit = async () => {
+    if (syncStatus === 'pending') return; // guard against double-tap
+
     setErrorMessage(null);
 
     const validationError = validateScore(value, scoreMin, scoreMax);
@@ -134,12 +136,13 @@ export function ScoreRow({
       )}
 
       <div className="flex items-center gap-3 justify-between">
-        <button
+                <button
           onClick={handleSubmit}
+          disabled={syncStatus === 'pending'}
           aria-label={`Submit score for ${participantName}`}
-          className="flex-1 min-h-[52px] bg-spotlight-gold text-stage-black text-sm font-bold rounded-lg hover:opacity-90 active:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-spotlight-gold"
+          className="flex-1 min-h-[52px] bg-spotlight-gold text-stage-black text-sm font-bold rounded-lg hover:opacity-90 active:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity focus:outline-none focus:ring-2 focus:ring-spotlight-gold"
         >
-          Submit
+          {syncStatus === 'pending' ? 'Saving…' : 'Submit'}
         </button>
         {syncStatus !== null && <SyncStatusBadge syncStatus={syncStatus} />}
       </div>

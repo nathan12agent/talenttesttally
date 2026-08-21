@@ -20,6 +20,27 @@ type CollectionId = (typeof CLEARABLE_COLLECTIONS)[number]['id'];
 
 const FIRESTORE_BATCH_LIMIT = 500;
 
+/** Downloads a JSON snapshot of every clearable collection before deletion. */
+async function exportBackup(): Promise<void> {
+  const backup: Record<string, unknown[]> = {};
+
+  for (const { id } of CLEARABLE_COLLECTIONS) {
+    const snapshot = await getDocs(collection(db, id));
+    backup[id] = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }
+
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  a.href = url;
+  a.download = `talent-test-backup-${timestamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 async function clearCollection(collectionId: string): Promise<number> {
   const snapshot = await getDocs(collection(db, collectionId));
   const docs = snapshot.docs;
@@ -46,13 +67,14 @@ export function ClearDataButton() {
     setLog((prev) => [...prev, msg]);
   }
 
-  async function handleClearOne(id: CollectionId, label: string) {
+    async function handleClearOne(id: CollectionId, label: string) {
     setConfirmId(null);
     setBusyId(id);
     setError('');
     try {
+      await exportBackup();
       const count = await clearCollection(id);
-      addLog(`✓ Cleared ${label}: ${count} document(s) deleted`);
+      addLog(`✓ Backup downloaded. Cleared ${label}: ${count} document(s) deleted`);
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to clear ${label}`);
     } finally {
@@ -66,6 +88,8 @@ export function ClearDataButton() {
     setError('');
     setLog([]);
     try {
+      await exportBackup();
+      addLog('✓ Backup downloaded.');
       for (const { id, label } of CLEARABLE_COLLECTIONS) {
         const count = await clearCollection(id);
         addLog(`✓ Cleared ${label}: ${count} document(s) deleted`);
@@ -83,7 +107,8 @@ export function ClearDataButton() {
     <div className="flex flex-col gap-4">
       <p className="text-sm text-gray-600">
         Permanently deletes data from Firestore. This cannot be undone — use before a fresh
-        run, not while judges are actively scoring.
+        run, not while judges are actively scoring. A JSON backup of all data downloads
+        automatically before anything is cleared.
       </p>
 
       <div className="flex items-center gap-3">
