@@ -22,7 +22,7 @@ const emptyForm = {
   participantChestNos: [] as string[],
   scheduledOrder: 1,
   scoreMin: 0,
-  scoreMax: 100,
+  scoreMax: 10,
 };
 
 export function RoundBuilder({ events, judges, participants, onSave }: RoundBuilderProps) {
@@ -340,7 +340,7 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
             Score max
           </label>
           <input
-            id="rb-scoreMax==10"
+            id="rb-scoreMax"
             type="number"
             value={form.scoreMax}
             onChange={(e) =>
