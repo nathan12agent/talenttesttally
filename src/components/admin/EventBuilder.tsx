@@ -85,7 +85,7 @@ export function EventBuilder({ events, onEventCreated }: EventBuilderProps) {
 
       {/* Location */}
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium text-gray-700">Location</legend>
+        <legend className="text-sm font-medium text-white-700">Location</legend>
         <div className="flex gap-6">
           {(['onstage', 'offstage'] as EventDoc['location'][]).map((loc) => (
             <label key={loc} className="flex items-center gap-2 cursor-pointer select-none">
