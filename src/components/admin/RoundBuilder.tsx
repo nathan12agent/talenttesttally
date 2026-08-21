@@ -340,7 +340,7 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
             Score max
           </label>
           <input
-            id="rb-scoreMax"
+            id="rb-scoreMax==10"
             type="number"
             value={form.scoreMax}
             onChange={(e) =>
