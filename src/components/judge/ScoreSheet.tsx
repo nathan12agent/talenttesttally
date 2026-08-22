@@ -37,7 +37,7 @@ export function ScoreSheet({ round, judgeId, onBack }: ScoreSheetProps) {
 
   const isLocked = round.status === 'locked';
   const scoreMin = round.scoreMin ?? 0;
-  const scoreMax = round.scoreMax ?? 100;
+  const scoreMax = round.scoreMax ?? 10;
 
   const title = eventName ? `${eventName}` : round.id;
 

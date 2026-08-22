@@ -23,7 +23,7 @@ export function ScoreRow({
   judgeId,
   isLocked,
   scoreMin = 0,
-  scoreMax = 100,
+  scoreMax = 10,
   existingScore,
 }: ScoreRowProps) {
   const [inputValue, setInputValue] = useState<string>(
