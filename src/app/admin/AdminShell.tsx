@@ -245,7 +245,7 @@ export function AdminShell({ adminPin }: AdminShellProps) {
           <div className="flex flex-col gap-8">
             <section>
               <h2 className="font-display text-2xl text-ink mb-3">Import Schedule (CSV)</h2>
-              <ScheduleImport judges={judges} onImported={() => {}} />
+              <ScheduleImport events={events} judges={judges} onImported={() => {}} />
             </section>
             <section>
               <h2 className="font-display text-2xl text-ink mb-3">Create Event Manually</h2>
