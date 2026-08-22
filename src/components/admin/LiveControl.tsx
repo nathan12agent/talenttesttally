@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import { useRounds } from '../../hooks/useRounds';
 import { useScores } from '../../hooks/useScores';
-import { updateRoundStatus, computePodiumOnLock } from '../../lib/firestore';
 import { ChestBadge } from '../shared/ChestBadge';
 import type { EventDoc, RoundDoc } from '../../types';
-
+import { updateRoundStatus, computePodiumOnLock, refreshRoundParticipants } from '../../lib/firestore';
 // ── Judge-submission progress dots ───────────────────────────────────────────
 
 function SubmissionDots({
@@ -86,7 +85,21 @@ function RoundControlCard({ round, eventName }: RoundControlCardProps) {
       setSaving(false);
     }
   }
+const [refreshing, setRefreshing] = useState(false);
+const [refreshMessage, setRefreshMessage] = useState('');
 
+async function handleRefreshParticipants() {
+  setRefreshing(true);
+  setRefreshMessage('');
+  try {
+    const chestNos = await refreshRoundParticipants(round.id, round.group);
+    setRefreshMessage(`Synced ${chestNos.length} participant${chestNos.length !== 1 ? 's' : ''} from ${round.group}.`);
+  } catch {
+    setRefreshMessage('Failed to refresh. Please try again.');
+  } finally {
+    setRefreshing(false);
+  }
+}
   async function handleLock() {
     setSaving(true);
     setError('');
@@ -169,6 +182,28 @@ function RoundControlCard({ round, eventName }: RoundControlCardProps) {
         </p>
       )}
 
+      {/* Participant count with chest icon motif */}
+<div className="flex items-center gap-2">
+  <ChestBadge chestNo={String(round.participantChestNos.length)} size="sm" />
+  <span className="text-xs text-ink-muted">
+    participant{round.participantChestNos.length !== 1 ? 's' : ''} · Order #{round.scheduledOrder}
+  </span>
+</div>
+
+{round.status !== 'locked' && (
+  <div className="flex items-center gap-2">
+    <button
+      onClick={handleRefreshParticipants}
+      disabled={refreshing}
+      className="text-xs text-spotlight-gold underline decoration-spotlight-gold/40 hover:decoration-spotlight-gold disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-spotlight-gold rounded"
+    >
+      {refreshing ? 'Refreshing…' : '🔄 Refresh participants from group'}
+    </button>
+    {refreshMessage && (
+      <span className="text-xs text-ink-muted">{refreshMessage}</span>
+    )}
+  </div>
+)}
       {/* Action buttons */}
       {round.status === 'pending' && (
         <button

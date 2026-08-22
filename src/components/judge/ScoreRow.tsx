@@ -26,35 +26,25 @@ export function ScoreRow({
   scoreMax = 100,
   existingScore,
 }: ScoreRowProps) {
-  const [value, setValue] = useState<number>(
-    existingScore?.score !== undefined ? existingScore.score : scoreMin,
+  const [inputValue, setInputValue] = useState<string>(
+    existingScore?.score !== undefined ? String(existingScore.score) : ''
   );
+  const [isAbsent, setIsAbsent] = useState<boolean>(existingScore?.absent ?? false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(
-    existingScore ? 'synced' : null,
+    existingScore ? 'synced' : null
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  function clamp(n: number) {
-    return Math.min(scoreMax, Math.max(scoreMin, n));
-  }
-
-  function decrement() {
-    setValue((v) => clamp(v - 1));
-  }
-
-  function increment() {
-    setValue((v) => clamp(v + 1));
-  }
-
-    const handleSubmit = async () => {
-    if (syncStatus === 'pending') return; // guard against double-tap
-
+  const handleSubmit = async () => {
     setErrorMessage(null);
 
-    const validationError = validateScore(value, scoreMin, scoreMax);
-    if (validationError) {
-      setErrorMessage(validationError);
-      return;
+    if (!isAbsent) {
+      const parsed = parseFloat(inputValue);
+      const validationError = validateScore(parsed, scoreMin, scoreMax);
+      if (validationError) {
+        setErrorMessage(validationError);
+        return;
+      }
     }
 
     setSyncStatus('pending');
@@ -64,7 +54,8 @@ export function ScoreRow({
         roundId,
         chestNo,
         judgeId,
-        score: value,
+        score: isAbsent ? 0 : parseFloat(inputValue),
+        absent: isAbsent,
         submittedAt: new Date().toISOString(),
         synced: false,
       });
@@ -77,75 +68,59 @@ export function ScoreRow({
 
   if (isLocked) {
     return (
-      <div className="flex items-center gap-3 p-4 border-b border-ink-muted/20">
-        <div className="flex-1">
-          <p className="text-xs text-ink-muted font-medium uppercase tracking-wider">{chestNo}</p>
-          <p className="text-sm text-ink">{participantName}</p>
-        </div>
-        <span className="font-display text-2xl text-ink-muted">
-          {existingScore?.score ?? '—'}
+      <div className="flex items-center gap-3 p-3 border-b border-gray-200">
+        <span className="flex-1 text-sm text-gray-700">
+          {chestNo} - {participantName}
         </span>
-        <span className="text-sm text-ink-muted">🔒 Locked</span>
+        <span className="text-sm font-medium text-gray-900">
+          {existingScore?.absent ? 'Absent' : existingScore?.score ?? '—'}
+        </span>
+        <span className="text-sm text-gray-500">🔒 Locked</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3 p-4 border-b border-ink-muted/20">
-      {/* Participant info */}
-      <div>
-        <p className="text-xs text-ink-muted font-medium uppercase tracking-wider">{chestNo}</p>
-        <p className="text-sm text-ink font-medium">{participantName}</p>
+    <div className="flex items-center gap-3 p-3 border-b border-gray-200">
+      <span className="flex-1 text-sm text-gray-700">
+        {chestNo} - {participantName}
+      </span>
+
+      <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={isAbsent}
+          onChange={(e) => setIsAbsent(e.target.checked)}
+          className="w-4 h-4 accent-red-600"
+        />
+        Absent
+      </label>
+
+      <div className="flex flex-col gap-1">
+        <input
+          type="number"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          min={scoreMin}
+          max={scoreMax}
+          disabled={isAbsent}
+          className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-40 disabled:bg-gray-100"
+          aria-label={`Score for ${participantName}`}
+        />
+        {errorMessage && (
+          <span className="text-xs text-red-600">{errorMessage}</span>
+        )}
       </div>
 
-      {/* Stepper */}
-      <div className="flex items-center gap-4 justify-center">
-        <button
-          onClick={decrement}
-          disabled={value <= scoreMin}
-          aria-label={`Decrease score for ${participantName}`}
-          className="w-16 h-16 rounded-full bg-stage-charcoal text-ink text-2xl font-bold border border-ink-muted hover:border-spotlight-gold hover:text-spotlight-gold disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-spotlight-gold"
-        >
-          −
-        </button>
-        <span
-          className="font-display text-4xl text-paper w-16 text-center"
-          aria-live="polite"
-          aria-label={`Score: ${value}`}
-        >
-          {value}
-        </span>
-        <button
-          onClick={increment}
-          disabled={value >= scoreMax}
-          aria-label={`Increase score for ${participantName}`}
-          className="w-16 h-16 rounded-full bg-stage-charcoal text-ink text-2xl font-bold border border-ink-muted hover:border-spotlight-gold hover:text-spotlight-gold disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-spotlight-gold"
-        >
-          +
-        </button>
-      </div>
+      <button
+        onClick={handleSubmit}
+        className="min-h-[48px] px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        aria-label={`Submit score for ${participantName}`}
+      >
+        Submit
+      </button>
 
-      <p className="text-xs text-ink-muted text-center">
-        Range: {scoreMin} – {scoreMax}
-      </p>
-
-      {errorMessage && (
-        <p role="alert" className="text-curtain-red text-xs text-center">
-          {errorMessage}
-        </p>
-      )}
-
-      <div className="flex items-center gap-3 justify-between">
-                <button
-          onClick={handleSubmit}
-          disabled={syncStatus === 'pending'}
-          aria-label={`Submit score for ${participantName}`}
-          className="flex-1 min-h-[52px] bg-spotlight-gold text-stage-black text-sm font-bold rounded-lg hover:opacity-90 active:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity focus:outline-none focus:ring-2 focus:ring-spotlight-gold"
-        >
-          {syncStatus === 'pending' ? 'Saving…' : 'Submit'}
-        </button>
-        {syncStatus !== null && <SyncStatusBadge syncStatus={syncStatus} />}
-      </div>
+      {syncStatus !== null && <SyncStatusBadge syncStatus={syncStatus} />}
     </div>
   );
 }

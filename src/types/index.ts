@@ -99,3 +99,28 @@ export interface ChestNoPointsTotalsDoc {
   perGroupPoints: Partial<Record<Group, number>>;
   overallPoints: number;
 }
+
+export interface ScoreDoc {
+  id: string;
+  roundId: string;
+  chestNo: string;
+  judgeId: string;
+  score: number;
+  absent?: boolean;
+  submittedAt: string;
+  synced: boolean;
+}
+
+export interface ScheduleRow {
+  eventName: string;
+  location: 'onstage' | 'offstage';
+  scoringMode: 'averaged' | 'singleByGroup';
+  group: Group;
+  scheduledOrder: number;
+}
+
+export interface ScheduleParseResult {
+  rows: ScheduleRow[];
+  errors: ParseError[];
+  conflicts: string[];
+}

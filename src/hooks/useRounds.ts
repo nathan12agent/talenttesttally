@@ -29,11 +29,19 @@ export function useRounds(judgeId?: string): RoundDoc[] {
             orderBy('scheduledOrder', 'asc'),
           );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setRounds(
-        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as RoundDoc)),
-      );
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setRounds(
+          snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as RoundDoc)),
+        );
+      },
+      (error) => {
+        console.error('useRounds snapshot error:', error);
+        // Optionally surface this to the UI, e.g. via a state setter, so the
+        // judge sees "Couldn't load rounds" instead of a silently empty list.
+      },
+    );
 
     return unsubscribe;
   }, [judgeId]);

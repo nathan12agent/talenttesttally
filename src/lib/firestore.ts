@@ -38,6 +38,12 @@ export async function upsertParticipant(data: ParticipantDoc): Promise<void> {
   await setDoc(ref, data);
 }
 
+export async function getParticipantChestNosForGroup(group: Group): Promise<string[]> {
+  const q = query(collection(db, 'participants'), where('group', '==', group));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((d) => d.id); // doc ID = chestNo
+}
+
 // ── Events ────────────────────────────────────────────────────────────────────
 
 export async function createEvent(
@@ -72,6 +78,13 @@ export async function updateRoundStatus(
 ): Promise<void> {
   const ref = doc(collection(db, 'eventRounds'), roundId);
   await updateDoc(ref, { status });
+}
+
+export async function refreshRoundParticipants(roundId: string, group: Group): Promise<string[]> {
+  const chestNos = await getParticipantChestNosForGroup(group);
+  const ref = doc(collection(db, 'eventRounds'), roundId);
+  await updateDoc(ref, { participantChestNos: chestNos });
+  return chestNos;
 }
 
 // ── Judges ────────────────────────────────────────────────────────────────────
@@ -109,9 +122,7 @@ export async function setAdminSession(uid: string): Promise<void> {
 
 // ── Off-stage judge assignments ───────────────────────────────────────────────
 
-export async function getOffStageJudgeAssignments(): Promise<
-  Record<string, OffStageJudgeAssignmentDoc>
-> {
+export async function getOffStageJudgeAssignments(): Promise<Record<string, OffStageJudgeAssignmentDoc>> {
   const snapshot = await getDocs(collection(db, 'offStageJudgeAssignments'));
   const result: Record<string, OffStageJudgeAssignmentDoc> = {};
   snapshot.docs.forEach((docSnap) => {
@@ -165,6 +176,7 @@ export async function computePodiumOnLock(
 
   const scoresByChestNo = new Map<string, number[]>();
   scores.forEach((s) => {
+    if (s.absent) return; // skip absent participants entirely — no podium eligibility
     const list = scoresByChestNo.get(s.chestNo) ?? [];
     list.push(s.score);
     scoresByChestNo.set(s.chestNo, list);

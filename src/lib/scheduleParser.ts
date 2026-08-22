@@ -1,186 +1,136 @@
 import Papa from 'papaparse';
-import type { EventDoc, RoundDoc, Group, ScoringType } from '../types';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-export interface ScheduleParseError {
-  row: number;
-  field: string;
-  message: string;
-}
-
-export interface ScheduleParseResult {
-  events: Omit<EventDoc, 'id'>[];
-  rounds: Omit<RoundDoc, 'id' | 'assignedJudgeIds' | 'status'>[];
-  errors: ScheduleParseError[];
-  /** Chest numbers that appear in more than one round with the same scheduledOrder */
-  conflicts: { chestNo: string; rounds: string[] }[];
-}
+import type { Group, ScheduleRow, ScheduleParseResult, ParseError } from '../types';
 
 const VALID_GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior'];
-const VALID_LOCATIONS: EventDoc['location'][] = ['onstage', 'offstage'];
-const VALID_SCORING_MODES: EventDoc['scoringMode'][] = ['averaged', 'singleByGroup'];
+const VALID_LOCATIONS = ['onstage', 'offstage'] as const;
+const VALID_SCORING_MODES = ['averaged', 'singleByGroup'] as const;
 
-// Flexible header matching — normalise to lowercase, strip spaces/underscores
-function normaliseKey(key: string): string {
-  return key.toLowerCase().replace(/[\s_-]/g, '');
-}
-
-const HEADER_MAP: Record<string, string> = {
-  eventname: 'eventName',
-  event: 'eventName',
-  name: 'eventName',
-  location: 'location',
-  loc: 'location',
-  scoringmode: 'scoringMode',
-  scoring: 'scoringMode',
-  mode: 'scoringMode',
-  group: 'group',
-  groups: 'group',
-  agegroup: 'group',
-  scheduledorder: 'scheduledOrder',
-  order: 'scheduledOrder',
-  runningorder: 'scheduledOrder',
-  timeslot: 'scheduledOrder',
-  slot: 'scheduledOrder',
-};
+const REQUIRED_COLUMNS = ['eventName', 'location', 'group', 'scheduledOrder'] as const;
 
 /**
- * Parse a schedule CSV into a list of event + round descriptors.
+ * Parses a schedule CSV file into structured ScheduleRow objects.
  *
- * CSV columns (flexible header names, see HEADER_MAP):
- *   eventName | location | scoringMode (optional) | group | scheduledOrder
+ * Expected columns: eventName, location, scoringMode (optional), group, scheduledOrder
  *
- * One row = one event × one group combination.
- * Multiple rows with the same event name are merged into a single event; the
- * location and scoringMode are taken from the first row for that event name.
+ * scoringMode defaults based on location:
+ *   onstage  → averaged
+ *   offstage → singleByGroup
  *
- * This function does NOT write to Firestore — the caller (ScheduleImport) does
- * the writes so it can show progress, handle partial failures, etc.
+ * Returns valid rows, parse errors, and scheduling conflict warnings
+ * (participants appearing in multiple rounds at the same scheduledOrder).
  */
 export function parseScheduleCsv(csvText: string): ScheduleParseResult {
-  const errors: ScheduleParseError[] = [];
+  const rows: ScheduleRow[] = [];
+  const errors: ParseError[] = [];
 
   const parsed = Papa.parse<Record<string, string>>(csvText.trim(), {
     header: true,
     skipEmptyLines: true,
-    transformHeader: (h) => {
-      const normalised = normaliseKey(h);
-      return HEADER_MAP[normalised] ?? h;
-    },
   });
 
-  if (!parsed.data.length) {
-    return { events: [], rounds: [], errors: [{ row: 0, field: 'file', message: 'File is empty or has no data rows' }], conflicts: [] };
+  if (parsed.data.length === 0) {
+    errors.push({ row: 0, field: '', message: 'File is empty or has no data rows.' });
+    return { rows, errors, conflicts: [] };
   }
 
-  const requiredHeaders = ['eventName', 'location', 'group', 'scheduledOrder'];
-  const firstRow = parsed.data[0];
-  const missingHeaders = requiredHeaders.filter((h) => !(h in firstRow));
-  if (missingHeaders.length > 0) {
-    return {
-      events: [],
-      rounds: [],
-      errors: [{ row: 0, field: missingHeaders.join(', '), message: `Missing required columns: ${missingHeaders.join(', ')}` }],
-      conflicts: [],
-    };
+  // Validate required column headers exist
+  const headers = Object.keys(parsed.data[0] ?? {});
+  for (const col of REQUIRED_COLUMNS) {
+    if (!headers.includes(col)) {
+      errors.push({
+        row: 0,
+        field: col,
+        message: `Missing required column: "${col}". Found: ${headers.join(', ')}`,
+      });
+    }
+  }
+  if (errors.length > 0) {
+    return { rows, errors, conflicts: [] };
   }
 
-  // Collect unique events keyed by normalised name
-  const eventMap = new Map<string, Omit<EventDoc, 'id'>>();
-  // Collect rounds
-  const roundDescriptors: Omit<RoundDoc, 'id' | 'assignedJudgeIds' | 'status'>[] = [];
+  parsed.data.forEach((rawRow, idx) => {
+    const rowNum = idx + 2; // 1-indexed + header row
 
-  for (let rowIdx = 0; rowIdx < parsed.data.length; rowIdx++) {
-    const row = parsed.data[rowIdx];
-    const rowNum = rowIdx + 2; // 1-indexed, +1 for header row
+    const eventName = rawRow['eventName']?.trim();
+    const locationRaw = rawRow['location']?.trim().toLowerCase();
+    const scoringModeRaw = rawRow['scoringMode']?.trim();
+    const groupRaw = rawRow['group']?.trim();
+    const scheduledOrderRaw = rawRow['scheduledOrder']?.trim();
 
-    const eventName = row['eventName']?.trim();
-    const locationRaw = row['location']?.trim().toLowerCase() as EventDoc['location'];
-    const scoringModeRaw = row['scoringMode']?.trim() as EventDoc['scoringMode'] | undefined;
-    const groupRaw = row['group']?.trim() as Group;
-    const orderRaw = row['scheduledOrder']?.trim();
-
-    // Validate required fields
+    // eventName
     if (!eventName) {
-      errors.push({ row: rowNum, field: 'eventName', message: `Row ${rowNum}: eventName is required` });
-      continue;
+      errors.push({ row: rowNum, field: 'eventName', message: `Row ${rowNum}: eventName is required.` });
+      return;
     }
 
-    if (!locationRaw || !VALID_LOCATIONS.includes(locationRaw)) {
-      errors.push({ row: rowNum, field: 'location', message: `Row ${rowNum}: location must be 'onstage' or 'offstage', got "${locationRaw}"` });
-      continue;
+    // location
+    if (!locationRaw || !VALID_LOCATIONS.includes(locationRaw as typeof VALID_LOCATIONS[number])) {
+      errors.push({
+        row: rowNum,
+        field: 'location',
+        message: `Row ${rowNum}: location must be one of: ${VALID_LOCATIONS.join(', ')}.`,
+      });
+      return;
     }
+    const location = locationRaw as 'onstage' | 'offstage';
 
-    if (!groupRaw || !VALID_GROUPS.includes(groupRaw)) {
-      errors.push({ row: rowNum, field: 'group', message: `Row ${rowNum}: group must be one of ${VALID_GROUPS.join(', ')}, got "${groupRaw}"` });
-      continue;
-    }
-
-    const scheduledOrder = parseInt(orderRaw, 10);
-    if (!orderRaw || isNaN(scheduledOrder) || scheduledOrder < 1) {
-      errors.push({ row: rowNum, field: 'scheduledOrder', message: `Row ${rowNum}: scheduledOrder must be a positive integer` });
-      continue;
-    }
-
-    // Resolve scoringMode: from column if present and valid, otherwise derive from location
-    let scoringMode: EventDoc['scoringMode'];
-    if (scoringModeRaw && VALID_SCORING_MODES.includes(scoringModeRaw)) {
-      scoringMode = scoringModeRaw;
+    // scoringMode — optional, defaults from location
+    let scoringMode: 'averaged' | 'singleByGroup';
+    if (!scoringModeRaw) {
+      scoringMode = location === 'onstage' ? 'averaged' : 'singleByGroup';
+    } else if (VALID_SCORING_MODES.includes(scoringModeRaw as typeof VALID_SCORING_MODES[number])) {
+      scoringMode = scoringModeRaw as 'averaged' | 'singleByGroup';
     } else {
-      scoringMode = locationRaw === 'onstage' ? 'averaged' : 'singleByGroup';
+      errors.push({
+        row: rowNum,
+        field: 'scoringMode',
+        message: `Row ${rowNum}: scoringMode must be one of: ${VALID_SCORING_MODES.join(', ')}.`,
+      });
+      return;
     }
 
-    // Derive scoringType and batchMode for round
-    const scoringType: ScoringType = scoringMode === 'singleByGroup' ? 'single' : 'averaged';
-    const batchMode: boolean = locationRaw === 'offstage';
+    // group
+    if (!groupRaw || !VALID_GROUPS.includes(groupRaw as Group)) {
+      errors.push({
+        row: rowNum,
+        field: 'group',
+        message: `Row ${rowNum}: group must be one of: ${VALID_GROUPS.join(', ')}.`,
+      });
+      return;
+    }
+    const group = groupRaw as Group;
 
-    // Register event (first occurrence wins for location/scoringMode)
-    const normalName = eventName.toLowerCase();
-    if (!eventMap.has(normalName)) {
-      eventMap.set(normalName, { name: eventName, location: locationRaw, scoringMode });
+    // scheduledOrder
+    const scheduledOrder = parseInt(scheduledOrderRaw ?? '', 10);
+    if (!scheduledOrderRaw || isNaN(scheduledOrder) || scheduledOrder <= 0) {
+      errors.push({
+        row: rowNum,
+        field: 'scheduledOrder',
+        message: `Row ${rowNum}: scheduledOrder must be a positive integer.`,
+      });
+      return;
     }
 
-    roundDescriptors.push({
-      eventId: normalName, // placeholder — ScheduleImport replaces with real Firestore ID
-      group: groupRaw,
-      scoringType,
-      batchMode,
-      participantChestNos: [],
-      scheduledOrder,
-      scoreMin: 0,
-      scoreMax: 100,
-    });
-  }
+    rows.push({ eventName, location, scoringMode, group, scheduledOrder });
+  });
 
-  // ── Conflict detection: same scheduledOrder, same participant in >1 round ──
-  // (Participants aren't in the schedule CSV — conflict detection is done
-  // post-import when participant lists are assigned. We detect order collisions
-  // between rounds of the same track/location here as a proxy.)
-  const ordersByEventGroup = new Map<string, number[]>();
-  const conflicts: { chestNo: string; rounds: string[] }[] = [];
-
-  // For now we surface order collisions within the same scheduledOrder across rounds
-  const orderRoundMap = new Map<number, string[]>();
-  for (const r of roundDescriptors) {
-    const key = r.scheduledOrder;
-    const existing = orderRoundMap.get(key) ?? [];
-    existing.push(`${r.eventId}/${r.group}`);
-    orderRoundMap.set(key, existing);
-  }
-  // Expose collisions as "conflicts" using scheduledOrder as the chestNo field for display
-  orderRoundMap.forEach((rounds, order) => {
-    if (rounds.length > 1) {
-      conflicts.push({ chestNo: `order #${order}`, rounds });
+  // Detect scheduling conflicts: same group assigned to multiple rounds at the same order slot
+  const conflicts: string[] = [];
+  const orderGroupKey = new Map<string, string[]>();
+  rows.forEach((r) => {
+    const key = `${r.scheduledOrder}::${r.group}`;
+    const existing = orderGroupKey.get(key) ?? [];
+    existing.push(r.eventName);
+    orderGroupKey.set(key, existing);
+  });
+  orderGroupKey.forEach((eventNames, key) => {
+    if (eventNames.length > 1) {
+      const [order, group] = key.split('::');
+      conflicts.push(
+        `Order ${order}, Group "${group}" appears in multiple events: ${eventNames.join(', ')}`,
+      );
     }
   });
 
-  void ordersByEventGroup; // suppress unused warning
-
-  return {
-    events: Array.from(eventMap.values()),
-    rounds: roundDescriptors,
-    errors,
-    conflicts,
-  };
+  return { rows, errors, conflicts };
 }
