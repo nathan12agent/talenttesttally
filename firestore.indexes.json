@@ -9,6 +9,15 @@
       ]
     },
     {
+      "collectionGroup": "eventRounds",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "assignedJudgeIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "scheduledOrder", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "scores",
       "queryScope": "COLLECTION",
       "fields": [
