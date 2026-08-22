@@ -74,18 +74,18 @@ function RoundControlCard({ round, eventName }: RoundControlCardProps) {
 
   const scores = useScores(round.id);
 
-  async function handleSetLive() {
-    setSaving(true);
-    setError('');
-    try {
-      await refreshRoundParticipants(round.id, round.group);
-      await updateRoundStatus(round.id, 'live');
-    } catch {
-      setError('Failed to update. Please try again.');
-    } finally {
-      setSaving(false);
-    }
+ async function handleSetLive() {
+  setSaving(true);
+  setError('');
+  try {
+    await refreshRoundParticipants(round.id, round.group);
+    await updateRoundStatus(round.id, 'live');
+  } catch {
+    setError('Failed to update. Please try again.');
+  } finally {
+    setSaving(false);
   }
+}
 const [refreshing, setRefreshing] = useState(false);
 const [refreshMessage, setRefreshMessage] = useState('');
 
