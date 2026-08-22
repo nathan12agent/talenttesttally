@@ -78,6 +78,7 @@ function RoundControlCard({ round, eventName }: RoundControlCardProps) {
     setSaving(true);
     setError('');
     try {
+      await refreshRoundParticipants(round.id, round.group);
       await updateRoundStatus(round.id, 'live');
     } catch {
       setError('Failed to update. Please try again.');
