@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { getPointsConfig, setPointsConfig } from '../../lib/firestore';
-import type { EventDoc } from '../../types';
 import { BulkPointsConfig } from './BulkPointsConfig';
+import type { EventDoc } from '../../types';
 
 interface PointsConfigEditorProps {
   events: EventDoc[];
@@ -17,6 +17,7 @@ export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0); // bump this to force re-fetch after bulk apply
 
   useEffect(() => {
     if (!selectedEventId) {
@@ -33,7 +34,7 @@ export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
         setThird(config?.third ?? 0);
       })
       .finally(() => setLoading(false));
-  }, [selectedEventId]);
+  }, [selectedEventId, refreshKey]); // re-fetch whenever bulk apply completes too
 
   async function handleSave() {
     if (!selectedEventId) return;
@@ -51,11 +52,14 @@ export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Bulk apply — set the same points across many events at once */}
-      <BulkPointsConfig events={events} onApplied={() => {}} />
+      {/* Bulk apply — refreshes the single-event view below when it completes */}
+      <BulkPointsConfig events={events} onApplied={() => setRefreshKey((k) => k + 1)} />
 
       <div className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold text-gray-800">Configure Single Event</h3>
+        <p className="text-xs text-gray-500">
+          Values here reflect what&apos;s currently saved — including anything just applied in bulk above.
+        </p>
 
         <div className="flex flex-col gap-1">
           <label htmlFor="pc-event" className="text-sm font-medium text-gray-700">
