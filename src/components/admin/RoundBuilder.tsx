@@ -13,7 +13,7 @@ interface RoundBuilderProps {
   onSave: () => void;
 }
 
-const GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior'];
+const GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior', 'Common'];
 
 const emptyForm = {
   eventId: '',
@@ -42,6 +42,10 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
   const derivedScoringType: ScoringType =
     selectedEvent?.scoringMode === 'singleByGroup' ? 'single' : 'averaged';
   const derivedBatchMode: boolean = selectedEvent?.location === 'offstage';
+
+  // Common events are team events — teams are formed on the spot after the
+  // round is saved, not selected from a fixed group's participant list.
+  const isTeamEvent = form.group === 'Common';
 
   // Participants filtered to the selected group
   const filteredParticipants = useMemo(
@@ -110,7 +114,9 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
   function isFormValid(): boolean {
     if (!form.eventId) return false;
     if (!form.group) return false;
-    if (form.participantChestNos.length === 0) return false;
+    // Team events don't need chest numbers upfront — teams are formed after
+    // the round is created, from the round's own page.
+    if (!isTeamEvent && form.participantChestNos.length === 0) return false;
     if (getJudgeValidationError() !== null) return false;
     return true;
   }
@@ -134,6 +140,7 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
         group: form.group as Group,
         scoringType: derivedScoringType,
         batchMode: derivedBatchMode,
+        isTeamEvent,
         assignedJudgeIds: form.assignedJudgeIds,
         participantChestNos: form.participantChestNos,
         scheduledOrder: form.scheduledOrder,
@@ -204,6 +211,12 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
             </option>
           ))}
         </select>
+        {isTeamEvent && (
+          <p className="text-xs text-amber-600 mt-1">
+            Common events are team-based — points earned by a team&apos;s top finishes
+            get split across its individual members.
+          </p>
+        )}
       </div>
 
       {/* Judge multi-select */}
@@ -244,9 +257,14 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
       {/* Participant chest numbers — range input + checkbox list */}
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-medium text-gray-700">
-          Participants <span aria-hidden="true">*</span>
+          Participants {!isTeamEvent && <span aria-hidden="true">*</span>}
         </legend>
-        {!form.group ? (
+        {isTeamEvent ? (
+          <p className="text-sm text-gray-500">
+            This is a Common (team) event — save the round first, then add teams
+            from the round&apos;s page. Members can be any chest number, any group.
+          </p>
+        ) : !form.group ? (
           <p className="text-sm text-gray-500">Select a group to see participants.</p>
         ) : filteredParticipants.length === 0 ? (
           <p className="text-sm text-gray-500">No participants in this group.</p>
