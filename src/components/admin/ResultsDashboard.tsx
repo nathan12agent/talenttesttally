@@ -90,15 +90,29 @@ interface RoundScoreTableProps {
 
 function RoundScoreTable({ round, participants, events, judges }: RoundScoreTableProps) {
   const scores = useScores(round.id);
+  const [teams, setTeams] = useState<import('../../types').TeamDoc[]>([]);
+
+  useEffect(() => {
+    if (!round.isTeamEvent) return;
+    import('../../lib/firestore').then(({ getTeamsForRound }) => {
+      getTeamsForRound(round.id).then(setTeams);
+    });
+  }, [round.id, round.isTeamEvent]);
 
   const event = events.find((e) => e.id === round.eventId);
   const eventName = event?.name ?? round.eventId;
 
   const roundJudges = judges.filter((j) => round.assignedJudgeIds.includes(j.id));
 
-  const roundParticipants = participants
-    .filter((p) => round.participantChestNos.includes(p.chestNo))
-    .sort((a, b) => Number(a.chestNo) - Number(b.chestNo));
+  // Unified row shape: id + label, works for both real chest numbers and team IDs
+  const rows: { id: string; label: string }[] = round.isTeamEvent
+    ? teams
+        .filter((t) => round.participantChestNos.includes(t.id))
+        .map((t) => ({ id: t.id, label: `👥 ${t.name}` }))
+    : participants
+        .filter((p) => round.participantChestNos.includes(p.chestNo))
+        .sort((a, b) => Number(a.chestNo) - Number(b.chestNo))
+        .map((p) => ({ id: p.chestNo, label: p.name }));
 
   const submittedJudgeIds = new Set(scores.map((s) => s.judgeId));
   const submitted = submittedJudgeIds.size;
@@ -129,10 +143,9 @@ function RoundScoreTable({ round, participants, events, judges }: RoundScoreTabl
         <table className="min-w-full text-sm">
           <thead className="bg-stage-charcoal border-b border-ink-muted/10">
             <tr>
-              <th className="px-3 py-2 text-left font-medium text-ink-muted whitespace-nowrap text-xs uppercase tracking-wider">
-                Chest No
+              <th className="px-3 py-2 text-left font-medium text-ink-muted text-xs uppercase tracking-wider">
+                {round.isTeamEvent ? 'Team' : 'Name'}
               </th>
-              <th className="px-3 py-2 text-left font-medium text-ink-muted text-xs uppercase tracking-wider">Name</th>
               {roundJudges.map((judge) => (
                 <th
                   key={judge.id}
@@ -147,20 +160,20 @@ function RoundScoreTable({ round, participants, events, judges }: RoundScoreTabl
             </tr>
           </thead>
           <tbody>
-            {roundParticipants.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={2 + roundJudges.length + 1}
+                  colSpan={1 + roundJudges.length + 1}
                   className="px-3 py-4 text-center text-ink-muted"
                 >
-                  No participants in this round.
+                  {round.isTeamEvent ? 'No teams formed yet.' : 'No participants in this round.'}
                 </td>
               </tr>
             ) : (
-              roundParticipants.map((participant, rowIdx) => {
+              rows.map((row, rowIdx) => {
                 const judgeScores = roundJudges.map((judge) => {
                   const scoreDoc = scores.find(
-                    (s) => s.chestNo === participant.chestNo && s.judgeId === judge.id,
+                    (s) => s.chestNo === row.id && s.judgeId === judge.id,
                   );
                   return scoreDoc?.score ?? null;
                 });
@@ -170,11 +183,8 @@ function RoundScoreTable({ round, participants, events, judges }: RoundScoreTabl
                 const rowBg = rowIdx % 2 === 0 ? 'bg-stage-black' : 'bg-stage-charcoal';
 
                 return (
-                  <tr key={participant.chestNo} className={rowBg}>
-                    <td className="px-3 py-2 font-mono text-ink-muted whitespace-nowrap text-xs">
-                      {participant.chestNo}
-                    </td>
-                    <td className="px-3 py-2 text-ink text-xs">{participant.name}</td>
+                  <tr key={row.id} className={rowBg}>
+                    <td className="px-3 py-2 text-ink text-xs">{row.label}</td>
                     {judgeScores.map((score, idx) => (
                       <td
                         key={roundJudges[idx].id}

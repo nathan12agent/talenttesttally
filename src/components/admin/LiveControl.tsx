@@ -6,6 +6,7 @@ import { useScores } from '../../hooks/useScores';
 import { ChestBadge } from '../shared/ChestBadge';
 import type { EventDoc, RoundDoc } from '../../types';
 import { updateRoundStatus, computePodiumOnLock, refreshRoundParticipants } from '../../lib/firestore';
+
 // ── Judge-submission progress dots ───────────────────────────────────────────
 
 function SubmissionDots({
@@ -71,36 +72,43 @@ function RoundControlCard({ round, eventName }: RoundControlCardProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [podiumWarning, setPodiumWarning] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState('');
 
   const scores = useScores(round.id);
 
- async function handleSetLive() {
-  setSaving(true);
-  setError('');
-  try {
-    await refreshRoundParticipants(round.id, round.group);
-    await updateRoundStatus(round.id, 'live');
-  } catch {
-    setError('Failed to update. Please try again.');
-  } finally {
-    setSaving(false);
+  async function handleSetLive() {
+    setSaving(true);
+    setError('');
+    try {
+      // Only auto-refresh participants from the group for normal
+      // (non-team) rounds. For Common/team events, participantChestNos
+      // holds team IDs, not chest numbers — refreshing here would wipe
+      // every team that's been formed for this round.
+      if (!round.isTeamEvent) {
+        await refreshRoundParticipants(round.id, round.group);
+      }
+      await updateRoundStatus(round.id, 'live');
+    } catch {
+      setError('Failed to update. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
-}
-const [refreshing, setRefreshing] = useState(false);
-const [refreshMessage, setRefreshMessage] = useState('');
 
-async function handleRefreshParticipants() {
-  setRefreshing(true);
-  setRefreshMessage('');
-  try {
-    const chestNos = await refreshRoundParticipants(round.id, round.group);
-    setRefreshMessage(`Synced ${chestNos.length} participant${chestNos.length !== 1 ? 's' : ''} from ${round.group}.`);
-  } catch {
-    setRefreshMessage('Failed to refresh. Please try again.');
-  } finally {
-    setRefreshing(false);
+  async function handleRefreshParticipants() {
+    setRefreshing(true);
+    setRefreshMessage('');
+    try {
+      const chestNos = await refreshRoundParticipants(round.id, round.group);
+      setRefreshMessage(`Synced ${chestNos.length} participant${chestNos.length !== 1 ? 's' : ''} from ${round.group}.`);
+    } catch {
+      setRefreshMessage('Failed to refresh. Please try again.');
+    } finally {
+      setRefreshing(false);
+    }
   }
-}
+
   async function handleLock() {
     setSaving(true);
     setError('');
@@ -148,18 +156,24 @@ async function handleRefreshParticipants() {
             Batch
           </span>
         )}
+        {round.isTeamEvent && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+            Teams
+          </span>
+        )}
       </div>
 
-      {/* Participant count with chest icon motif */}
+      {/* Participant/team count — single instance, no duplicate */}
       <div className="flex items-center gap-2">
         <ChestBadge chestNo={String(round.participantChestNos.length)} size="sm" />
         <span className="text-xs text-ink-muted">
-          participant{round.participantChestNos.length !== 1 ? 's' : ''} · Order #{round.scheduledOrder}
+          {round.isTeamEvent ? 'team' : 'participant'}
+          {round.participantChestNos.length !== 1 ? 's' : ''} · Order #{round.scheduledOrder}
         </span>
       </div>
 
       {/* Judge submission progress */}
-      {round.status === 'live' && !round.isTeamEvent &&  (
+      {round.status === 'live' && !round.isTeamEvent && (
         <div className="flex items-center gap-2">
           <SubmissionDots submitted={submitted} expected={expected} />
           <span className="text-xs text-ink-muted">
@@ -183,28 +197,23 @@ async function handleRefreshParticipants() {
         </p>
       )}
 
-      {/* Participant count with chest icon motif */}
-<div className="flex items-center gap-2">
-  <ChestBadge chestNo={String(round.participantChestNos.length)} size="sm" />
-  <span className="text-xs text-ink-muted">
-    participant{round.participantChestNos.length !== 1 ? 's' : ''} · Order #{round.scheduledOrder}
-  </span>
-</div>
+      {/* Refresh participants — hidden entirely for team events, since it
+          would wipe every team formed for this round */}
+      {round.status !== 'locked' && !round.isTeamEvent && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefreshParticipants}
+            disabled={refreshing}
+            className="text-xs text-spotlight-gold underline decoration-spotlight-gold/40 hover:decoration-spotlight-gold disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-spotlight-gold rounded"
+          >
+            {refreshing ? 'Refreshing…' : '🔄 Refresh participants from group'}
+          </button>
+          {refreshMessage && (
+            <span className="text-xs text-ink-muted">{refreshMessage}</span>
+          )}
+        </div>
+      )}
 
-{round.status !== 'locked' && (
-  <div className="flex items-center gap-2">
-    <button
-      onClick={handleRefreshParticipants}
-      disabled={refreshing}
-      className="text-xs text-spotlight-gold underline decoration-spotlight-gold/40 hover:decoration-spotlight-gold disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-spotlight-gold rounded"
-    >
-      {refreshing ? 'Refreshing…' : '🔄 Refresh participants from group'}
-    </button>
-    {refreshMessage && (
-      <span className="text-xs text-ink-muted">{refreshMessage}</span>
-    )}
-  </div>
-)}
       {/* Action buttons */}
       {round.status === 'pending' && (
         <button
