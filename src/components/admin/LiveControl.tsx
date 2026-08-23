@@ -236,8 +236,17 @@ function RoundControlCard({ round, eventName }: RoundControlCardProps) {
       )}
 
       {round.status === 'locked' && (
-        <span className="text-xs text-ink-muted font-medium">🔒 Locked</span>
-      )}
+  <div className="flex items-center gap-2">
+    <span className="text-xs text-ink-muted font-medium">🔒 Locked</span>
+    <button
+      onClick={handleLock}
+      disabled={saving}
+      className="text-xs text-spotlight-gold underline decoration-spotlight-gold/40 hover:decoration-spotlight-gold disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-spotlight-gold rounded"
+    >
+      {saving ? 'Recomputing…' : '🔄 Recompute podium & points'}
+    </button>
+  </div>
+)}
     </div>
   );
 }
