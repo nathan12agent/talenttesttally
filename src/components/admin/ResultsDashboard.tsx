@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRounds } from '../../hooks/useRounds';
 import { useParticipants } from '../../hooks/useParticipants';
 import { useScores } from '../../hooks/useScores';
-import { computeRoundScore, computeCumulativeTotal } from '../../lib/scoring';
+import { computeRoundScore } from '../../lib/scoring';
 import { ChestBadge } from '../shared/ChestBadge';
-import type { Group, EventDoc, JudgeDoc, RoundDoc, ParticipantDoc, ScoreDoc } from '../../types';
+import type { Group, EventDoc, JudgeDoc, RoundDoc, ParticipantDoc } from '../../types';
 
 interface ResultsDashboardProps {
   group: Group | 'all';
@@ -215,65 +215,35 @@ function RoundScoreTable({ round, participants, events, judges }: RoundScoreTabl
   );
 }
 
-// ─── LockedRoundScoreCollector ────────────────────────────────────────────────
-
-interface LockedRoundScoreCollectorProps {
-  roundId: string;
-  onScoresUpdate: (roundId: string, scores: ScoreDoc[]) => void;
-}
-
-function LockedRoundScoreCollector({ roundId, onScoresUpdate }: LockedRoundScoreCollectorProps) {
-  const scores = useScores(roundId);
-
-  useEffect(() => {
-    onScoresUpdate(roundId, scores);
-  }, [roundId, scores, onScoresUpdate]);
-
-  return null;
-}
 
 // ─── CumulativeTotalsSection ──────────────────────────────────────────────────
 
 interface CumulativeTotalsSectionProps {
-  lockedRounds: RoundDoc[];
   participants: ParticipantDoc[];
-  judges: JudgeDoc[];
 }
 
-function CumulativeTotalsSection({ lockedRounds, participants, judges }: CumulativeTotalsSectionProps) {
-  const [roundScoresMap, setRoundScoresMap] = useState<Record<string, ScoreDoc[]>>({});
+function CumulativeTotalsSection({ participants }: CumulativeTotalsSectionProps) {
+  const [totals, setTotals] = useState<import('../../types').ChestNoPointsTotalsDoc[]>([]);
 
-  const handleScoresUpdate = (roundId: string, scores: ScoreDoc[]) => {
-    setRoundScoresMap((prev) => {
-      if (prev[roundId] === scores) return prev;
-      return { ...prev, [roundId]: scores };
+  useEffect(() => {
+    import('../../lib/firestore').then(({ getChestNoPointsTotals }) => {
+      getChestNoPointsTotals().then(setTotals);
     });
-  };
+  }, []);
 
-  const totals = participants.map((participant) => {
-    const perRoundScores = lockedRounds.map((round) => {
-      const scores = roundScoresMap[round.id] ?? [];
-      const roundJudges = judges.filter((j) => round.assignedJudgeIds.includes(j.id));
-      const submittedScores = roundJudges
-        .map(
-          (judge) =>
-            scores.find((s) => s.chestNo === participant.chestNo && s.judgeId === judge.id)?.score,
-        )
-        .filter((s): s is number => s !== undefined);
-      return computeRoundScore(submittedScores, round.scoringType);
-    });
-    return {
-      participant,
-      total: computeCumulativeTotal(perRoundScores),
-    };
-  });
+  const totalsByChestNo = new Map(totals.map((t) => [t.chestNo, t]));
 
-  const sorted = [...totals].sort((a, b) => b.total - a.total);
+  const rows = participants.map((participant) => ({
+    participant,
+    total: totalsByChestNo.get(participant.chestNo)?.overallPoints ?? 0,
+  }));
 
-  // Build top 3 for podium
+  const sorted = [...rows].sort((a, b) => b.total - a.total);
+
   const top3: Array<{ chestNo: string; name: string; score: number; rank: 1 | 2 | 3 }> = [];
   for (let i = 0; i < Math.min(3, sorted.length); i++) {
     const { participant, total } = sorted[i];
+    if (total <= 0) break; // don't podium people with zero points
     top3.push({
       chestNo: participant.chestNo,
       name: participant.name,
@@ -284,18 +254,8 @@ function CumulativeTotalsSection({ lockedRounds, participants, judges }: Cumulat
 
   return (
     <>
-      {lockedRounds.map((round) => (
-        <LockedRoundScoreCollector
-          key={round.id}
-          roundId={round.id}
-          onScoresUpdate={handleScoresUpdate}
-        />
-      ))}
-
-      {/* Podium */}
       {top3.length >= 2 && <PodiumView top3={top3} />}
 
-      {/* Cumulative totals table */}
       <div className="overflow-x-auto rounded-lg border border-ink-muted/10">
         <table className="min-w-full text-sm">
           <thead className="bg-stage-charcoal border-b border-ink-muted/10">
@@ -342,7 +302,6 @@ function CumulativeTotalsSection({ lockedRounds, participants, judges }: Cumulat
     </>
   );
 }
-
 // ─── ResultsDashboard (main export) ──────────────────────────────────────────
 
 export function ResultsDashboard({ group, events, judges }: ResultsDashboardProps) {
@@ -382,17 +341,13 @@ export function ResultsDashboard({ group, events, judges }: ResultsDashboardProp
       ))}
 
       {lockedRounds.length > 0 && (
-        <div className="pt-4 border-t border-ink-muted/10">
+          <div className="pt-4 border-t border-ink-muted/10">
           <h3 className="font-display text-2xl text-ink tracking-wide mb-4">
-            Cumulative Totals
+             Cumulative Totals
           </h3>
-          <CumulativeTotalsSection
-            lockedRounds={lockedRounds}
-            participants={participants}
-            judges={judges}
-          />
-        </div>
-      )}
+          <CumulativeTotalsSection participants={participants} />
+          </div>
+    )}
     </div>
   );
 }
