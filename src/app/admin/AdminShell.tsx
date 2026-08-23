@@ -253,7 +253,7 @@ export function AdminShell({ adminPin }: AdminShellProps) {
             </section>
             <section>
               <h2 className="font-display text-2xl text-ink mb-3">All Rounds</h2>
-              <AdminRoundList events={events} judges={judges} />
+              <AdminRoundList events={events} judges={judges} participants={participants} />
             </section>
             <section>
               <h2 className="font-display text-2xl text-ink mb-3">Create Round Manually</h2>
