@@ -8,7 +8,7 @@ import { getTeamsForRound } from '../../lib/firestore';
 import { ConnectivityBanner } from '../shared/ConnectivityBanner';
 import { ChestBadge } from '../shared/ChestBadge';
 import { ScoreRow } from './ScoreRow';
-import type { ParticipantDoc, RoundDoc, TeamDoc } from '../../types';
+import type { RoundDoc, TeamDoc } from '../../types';
 
 interface ScoreSheetProps {
   round: RoundDoc;

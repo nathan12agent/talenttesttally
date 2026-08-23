@@ -128,11 +128,12 @@ export function PointsDashboard({ participants }: PointsDashboardProps) {
   );
 
   const groupRows: Record<Group, LeaderboardRow[]> = {
-    'Sub Jr': buildRows((p) => p.group === 'Sub Jr', (t) => t?.perGroupPoints?.['Sub Jr'] ?? 0),
-    Jr: buildRows((p) => p.group === 'Jr', (t) => t?.perGroupPoints?.['Jr'] ?? 0),
-    Intermediate: buildRows((p) => p.group === 'Intermediate', (t) => t?.perGroupPoints?.['Intermediate'] ?? 0),
-    Senior: buildRows((p) => p.group === 'Senior', (t) => t?.perGroupPoints?.['Senior'] ?? 0),
-  };
+  'Sub Jr': buildRows((p) => p.group === 'Sub Jr', (t) => t?.perGroupPoints?.['Sub Jr'] ?? 0),
+  Jr: buildRows((p) => p.group === 'Jr', (t) => t?.perGroupPoints?.['Jr'] ?? 0),
+  Intermediate: buildRows((p) => p.group === 'Intermediate', (t) => t?.perGroupPoints?.['Intermediate'] ?? 0),
+  Senior: buildRows((p) => p.group === 'Senior', (t) => t?.perGroupPoints?.['Senior'] ?? 0),
+  Common: [], // Common events award points to individuals across all groups, not a standalone leaderboard group — no direct per-participant "Common" list to build here
+};
 
   const tabGroups: Array<{ id: Group | 'overall'; label: string }> = [
     { id: 'overall', label: '🏆 Overall' },
