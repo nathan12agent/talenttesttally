@@ -1,5 +1,5 @@
 // Union types
-export type Group = 'Sub Jr' | 'Jr' | 'Intermediate' | 'Senior';
+export type Group = 'Sub Jr' | 'Jr' | 'Intermediate' | 'Senior' | 'Common';
 export type ScoringType = 'averaged' | 'single';
 export type RoundStatus = 'pending' | 'live' | 'locked';
 export type SyncStatus = 'synced' | 'pending' | 'failed';
@@ -30,6 +30,7 @@ export interface RoundDoc {
   scoreMin?: number;
   scoreMax?: number;
   batchMode: boolean; // true = offstage-style (score whenever), false = onstage-style (live sequential)
+  isTeamEvent?: boolean;
 }
 
 export interface JudgeDoc {
@@ -123,4 +124,10 @@ export interface ScheduleParseResult {
   rows: ScheduleRow[];
   errors: ParseError[];
   conflicts: string[];
+}
+export interface TeamDoc {
+  id: string; // Firestore auto-ID
+  roundId: string;
+  name: string; // whatever the on-the-spot team is called, e.g. "Team A"
+  memberChestNos: string[]; // any chest numbers, regardless of their actual age group
 }

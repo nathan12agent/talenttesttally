@@ -16,10 +16,23 @@ interface ScoreRowProps {
   existingScore?: ScoreDoc;
 }
 
+interface ScoreRowProps {
+  roundId: string;
+  chestNo: string; // for team events, this actually holds a teamId
+  participantName: string;
+  displayLabel?: string; // NEW — pass the team's name here for team events
+  judgeId: string;
+  isLocked: boolean;
+  scoreMin?: number;
+  scoreMax?: number;
+  existingScore?: ScoreDoc;
+}
+
 export function ScoreRow({
   roundId,
   chestNo,
   participantName,
+  displayLabel,
   judgeId,
   isLocked,
   scoreMin = 0,
@@ -70,7 +83,7 @@ export function ScoreRow({
     return (
       <div className="flex items-center gap-3 p-3 border-b border-gray-200">
         <span className="flex-1 text-sm text-gray-700">
-          {chestNo} - {participantName}
+          {displayLabel ?? `${chestNo} - ${participantName}`}
         </span>
         <span className="text-sm font-medium text-gray-900">
           {existingScore?.absent ? 'Absent' : existingScore?.score ?? '—'}
