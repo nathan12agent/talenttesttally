@@ -34,7 +34,7 @@ const TABS: { id: ActiveTab; label: string }[] = [
   { id: 'settings', label: 'Settings' },
 ];
 
-const GROUP_OPTIONS: Array<Group | 'all'> = ['all', 'Sub Jr', 'Jr', 'Intermediate', 'Senior'];
+const GROUP_OPTIONS: Array<Group | 'all'> = ['all', 'Sub Jr', 'Jr', 'Intermediate', 'Senior', 'Common'];
 
 interface AdminShellProps {
   adminPin: string;
