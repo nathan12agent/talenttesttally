@@ -20,6 +20,7 @@ interface TeamBuilderProps {
 export function TeamBuilder({ roundId, participants, existingTeams, onTeamAdded }: TeamBuilderProps) {
   const [teamName, setTeamName] = useState('');
   const [selectedChestNos, setSelectedChestNos] = useState<string[]>([]);
+  const [memberSearch, setMemberSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,6 +29,13 @@ export function TeamBuilder({ roundId, participants, existingTeams, onTeamAdded 
       prev.includes(chestNo) ? prev.filter((c) => c !== chestNo) : [...prev, chestNo],
     );
   }
+
+  const filteredCandidates = participants.filter(
+    (p) =>
+      !selectedChestNos.includes(p.chestNo) &&
+      (p.chestNo.includes(memberSearch) ||
+        p.name.toLowerCase().includes(memberSearch.toLowerCase())),
+  );
 
   async function handleAddTeam() {
     setError('');
@@ -55,6 +63,7 @@ export function TeamBuilder({ roundId, participants, existingTeams, onTeamAdded 
       await updateRoundParticipants(roundId, teamId); // appends teamId into participantChestNos
       setTeamName('');
       setSelectedChestNos([]);
+      setMemberSearch('');
       onTeamAdded();
     } catch {
       setError('Failed to create team. Please try again.');
@@ -100,27 +109,66 @@ export function TeamBuilder({ roundId, participants, existingTeams, onTeamAdded 
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-medium text-gray-700">
-          Members — any chest number, any group
+          Members — type chest number or name to add
         </legend>
-        <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
-          {participants.map((p) => (
-            <label
-              key={p.chestNo}
-              className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 select-none"
-            >
-              <input
-                type="checkbox"
-                checked={selectedChestNos.includes(p.chestNo)}
-                onChange={() => toggleMember(p.chestNo)}
-                disabled={saving}
-                className="w-5 h-5 accent-blue-600"
-              />
-              <span className="text-sm">
-                #{p.chestNo} — {p.name} ({p.group})
-              </span>
-            </label>
-          ))}
-        </div>
+
+        {/* Already-added members, as removable chips */}
+        {selectedChestNos.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-1">
+            {selectedChestNos.map((chestNo) => {
+              const p = participants.find((pp) => pp.chestNo === chestNo);
+              return (
+                <span
+                  key={chestNo}
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100"
+                >
+                  #{chestNo} {p?.name}
+                  <button
+                    type="button"
+                    onClick={() => toggleMember(chestNo)}
+                    disabled={saving}
+                    className="ml-1 text-blue-400 hover:text-blue-700 disabled:opacity-50"
+                    aria-label={`Remove ${p?.name ?? chestNo}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        <input
+          type="text"
+          value={memberSearch}
+          onChange={(e) => setMemberSearch(e.target.value)}
+          placeholder="Type chest number or name…"
+          disabled={saving}
+          className="min-h-[48px] px-4 rounded-lg border border-gray-300 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+        />
+
+        {memberSearch && (
+          <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+            {filteredCandidates.length === 0 ? (
+              <p className="text-sm text-gray-400 p-3">No match found.</p>
+            ) : (
+              filteredCandidates.slice(0, 8).map((p) => (
+                <button
+                  type="button"
+                  key={p.chestNo}
+                  onClick={() => {
+                    toggleMember(p.chestNo);
+                    setMemberSearch('');
+                  }}
+                  disabled={saving}
+                  className="text-left px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-100 last:border-b-0 disabled:opacity-50"
+                >
+                  #{p.chestNo} — {p.name} ({p.group})
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </fieldset>
 
       {error && (
