@@ -159,7 +159,7 @@ async function handleRefreshParticipants() {
       </div>
 
       {/* Judge submission progress */}
-      {round.status === 'live' && (
+      {round.status === 'live' && !round.isTeamEvent &&  (
         <div className="flex items-center gap-2">
           <SubmissionDots submitted={submitted} expected={expected} />
           <span className="text-xs text-ink-muted">
