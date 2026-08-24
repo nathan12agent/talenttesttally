@@ -59,9 +59,16 @@ export async function createEvent(
     location,
     scoringMode: resolvedScoringMode,
   });
+
+  // Auto-apply the default points config, if one has been set, so new
+  // events don't sit unconfigured until someone remembers to set them.
+  const defaultPoints = await getDefaultPointsConfig();
+  if (defaultPoints) {
+    await setPointsConfig(docRef.id, defaultPoints);
+  }
+
   return docRef.id;
 }
-
 // ── Rounds ────────────────────────────────────────────────────────────────────
 
 export async function createRound(data: Omit<RoundDoc, 'id'>): Promise<string> {
@@ -336,4 +343,21 @@ export async function updateRoundParticipants(roundId: string, newEntryId: strin
   const round = snap.data() as Omit<RoundDoc, 'id'>;
   const updated = Array.from(new Set([...round.participantChestNos, newEntryId]));
   await updateDoc(ref, { participantChestNos: updated });
+}
+
+/**
+ * Default podium points, applied automatically to every newly created
+ * event. Stored as a single fixed document so it stays constant across
+ * the whole competition unless explicitly changed.
+ */
+export async function getDefaultPointsConfig(): Promise<{ first: number; second: number; third: number } | null> {
+  const ref = doc(collection(db, 'settings'), 'defaultPoints');
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  return snap.data() as { first: number; second: number; third: number };
+}
+
+export async function setDefaultPointsConfig(points: { first: number; second: number; third: number }): Promise<void> {
+  const ref = doc(collection(db, 'settings'), 'defaultPoints');
+  await setDoc(ref, points);
 }
