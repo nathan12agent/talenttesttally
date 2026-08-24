@@ -141,7 +141,7 @@ export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
               type="number"
               value={defaultFirst}
               onChange={(e) => setDefaultFirst(Number(e.target.value))}
-              className="min-h-[44px] px-3 rounded-lg border border-gray-300 text-base"
+              className="w-full min-h-[44px] px-3 rounded-lg border border-gray-300 text-base"
             />
           </div>
           <div className="flex flex-col gap-1 flex-1">
@@ -150,7 +150,7 @@ export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
               type="number"
               value={defaultSecond}
               onChange={(e) => setDefaultSecond(Number(e.target.value))}
-              className="min-h-[44px] px-3 rounded-lg border border-gray-300 text-base"
+              className="w-full min-h-[44px] px-3 rounded-lg border border-gray-300 text-base"
             />
           </div>
           <div className="flex flex-col gap-1 flex-1">
@@ -159,7 +159,7 @@ export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
               type="number"
               value={defaultThird}
               onChange={(e) => setDefaultThird(Number(e.target.value))}
-              className="min-h-[44px] px-3 rounded-lg border border-gray-300 text-base"
+              className="w-full min-h-[44px] px-3 rounded-lg border border-gray-300 text-base"
             />
           </div>
         </div>
