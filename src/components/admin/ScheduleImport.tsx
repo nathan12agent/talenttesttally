@@ -83,7 +83,7 @@ export function ScheduleImport({ events, judges, onImported }: ScheduleImportPro
         // Live fetch — always reflects whatever's actually in Firestore right
         // now, regardless of whether participants were imported before or
         // after this schedule file.
-        const groupParticipants = await getParticipantChestNosForGroup(row.group);
+        const groupParticipants = await getParticipantChestNosForGroup(row.group, row.gender);
 
         const assignedJudgeIds =
           row.scoringMode === 'singleByGroup'
@@ -101,6 +101,7 @@ export function ScheduleImport({ events, judges, onImported }: ScheduleImportPro
           scheduledOrder: row.scheduledOrder,
           status: 'pending',
           batchMode: row.location === 'offstage',
+          ...(row.gender ? { gender: row.gender } : {}), // omit key entirely — Firestore rejects `undefined`
         });
       }
 
@@ -188,6 +189,7 @@ export function ScheduleImport({ events, judges, onImported }: ScheduleImportPro
                   <th className="px-4 py-2 text-left font-medium text-gray-600">Location</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-600">Scoring Mode</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-600">Group</th>
+                  <th className="px-4 py-2 text-left font-medium text-gray-600">Gender</th>
                   <th className="px-4 py-2 text-left font-medium text-gray-600">Order</th>
                 </tr>
               </thead>
@@ -198,6 +200,7 @@ export function ScheduleImport({ events, judges, onImported }: ScheduleImportPro
                     <td className="px-4 py-2 text-gray-800">{r.location}</td>
                     <td className="px-4 py-2 text-gray-800">{r.scoringMode}</td>
                     <td className="px-4 py-2 text-gray-800">{r.group}</td>
+                    <td className="px-4 py-2 text-gray-800">{r.gender ?? 'both'}</td>
                     <td className="px-4 py-2 text-gray-800">{r.scheduledOrder}</td>
                   </tr>
                 ))}

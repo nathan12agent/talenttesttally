@@ -86,7 +86,7 @@ function RoundControlCard({ round, eventName }: RoundControlCardProps) {
       // holds team IDs, not chest numbers — refreshing here would wipe
       // every team that's been formed for this round.
       if (!round.isTeamEvent) {
-        await refreshRoundParticipants(round.id, round.group);
+        await refreshRoundParticipants(round.id, round.group, round.gender);
       }
       await updateRoundStatus(round.id, 'live');
     } catch {
@@ -100,8 +100,10 @@ function RoundControlCard({ round, eventName }: RoundControlCardProps) {
     setRefreshing(true);
     setRefreshMessage('');
     try {
-      const chestNos = await refreshRoundParticipants(round.id, round.group);
-      setRefreshMessage(`Synced ${chestNos.length} participant${chestNos.length !== 1 ? 's' : ''} from ${round.group}.`);
+      const chestNos = await refreshRoundParticipants(round.id, round.group, round.gender);
+      setRefreshMessage(
+        `Synced ${chestNos.length} participant${chestNos.length !== 1 ? 's' : ''} from ${round.group}${round.gender ? ` (${round.gender})` : ''}.`,
+      );
     } catch {
       setRefreshMessage('Failed to refresh. Please try again.');
     } finally {

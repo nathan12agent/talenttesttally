@@ -28,6 +28,7 @@ export interface RoundDoc {
   participantChestNos: string[];
   scheduledOrder: number;
   status: RoundStatus;
+  gender?: 'M' | 'F'; // set for gender-split events (e.g. Solo Song Male/Female); omitted = both genders
   scoreMin?: number;
   scoreMax?: number;
   batchMode: boolean; // true = offstage-style (score whenever), false = onstage-style (live sequential)
@@ -119,6 +120,7 @@ export interface ScheduleRow {
   scoringMode: 'averaged' | 'singleByGroup';
   group: Group;
   scheduledOrder: number;
+  gender?: 'M' | 'F'; // inferred from "(Male)"/"(Female)" in eventName, or an explicit gender column
 }
 
 export interface ScheduleParseResult {

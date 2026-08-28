@@ -6,6 +6,24 @@ const VALID_LOCATIONS = ['onstage', 'offstage'] as const;
 const VALID_SCORING_MODES = ['averaged', 'singleByGroup'] as const;
 
 const REQUIRED_COLUMNS = ['eventName', 'location', 'group', 'scheduledOrder'] as const;
+const VALID_GENDERS = ['M', 'F'] as const;
+
+/**
+ * Determines the gender split (if any) for a schedule row.
+ * An explicit `gender` column always wins. Otherwise, falls back to
+ * detecting "(Male)" / "(Female)" in the event name, so events like
+ * "Solo Song (Male)" and "Solo Song (Female)" only pull participants
+ * of that gender instead of the whole group.
+ */
+function inferGender(genderRaw: string | undefined, eventName: string): 'M' | 'F' | undefined {
+  const explicit = genderRaw?.trim().toUpperCase();
+  if (explicit && (VALID_GENDERS as readonly string[]).includes(explicit)) {
+    return explicit as 'M' | 'F';
+  }
+  if (/\(male\)/i.test(eventName)) return 'M';
+  if (/\(female\)/i.test(eventName)) return 'F';
+  return undefined;
+}
 
 /**
  * Parses a schedule CSV file into structured ScheduleRow objects.
@@ -111,7 +129,9 @@ export function parseScheduleCsv(csvText: string): ScheduleParseResult {
       return;
     }
 
-    rows.push({ eventName, location, scoringMode, group, scheduledOrder });
+    const gender = inferGender(rawRow['gender'], eventName);
+
+    rows.push({ eventName, location, scoringMode, group, scheduledOrder, ...(gender ? { gender } : {}) });
   });
 
   // Detect scheduling conflicts: same group assigned to multiple rounds at the same order slot

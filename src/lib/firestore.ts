@@ -39,8 +39,13 @@ export async function upsertParticipant(data: ParticipantDoc): Promise<void> {
   await setDoc(ref, data);
 }
 
-export async function getParticipantChestNosForGroup(group: Group): Promise<string[]> {
-  const q = query(collection(db, 'participants'), where('group', '==', group));
+export async function getParticipantChestNosForGroup(
+  group: Group,
+  gender?: 'M' | 'F',
+): Promise<string[]> {
+  const constraints = [where('group', '==', group)];
+  if (gender) constraints.push(where('gender', '==', gender));
+  const q = query(collection(db, 'participants'), ...constraints);
   const snapshot = await getDocs(q);
   return snapshot.docs.map((d) => d.id); // doc ID = chestNo
 }
@@ -88,8 +93,12 @@ export async function updateRoundStatus(
   await updateDoc(ref, { status });
 }
 
-export async function refreshRoundParticipants(roundId: string, group: Group): Promise<string[]> {
-  const chestNos = await getParticipantChestNosForGroup(group);
+export async function refreshRoundParticipants(
+  roundId: string,
+  group: Group,
+  gender?: 'M' | 'F',
+): Promise<string[]> {
+  const chestNos = await getParticipantChestNosForGroup(group, gender);
   const ref = doc(collection(db, 'eventRounds'), roundId);
   await updateDoc(ref, { participantChestNos: chestNos });
   return chestNos;
