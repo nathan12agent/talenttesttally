@@ -1,7 +1,7 @@
 import Papa from 'papaparse';
 import type { Group, ScheduleRow, ScheduleParseResult, ParseError } from '../types';
 
-const VALID_GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior'];
+const VALID_GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior', 'Common'];
 const VALID_LOCATIONS = ['onstage', 'offstage'] as const;
 const VALID_SCORING_MODES = ['averaged', 'singleByGroup'] as const;
 

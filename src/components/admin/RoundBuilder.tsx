@@ -15,6 +15,7 @@ interface RoundBuilderProps {
 
 const GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior', 'Common'];
 
+
 const emptyForm = {
   eventId: '',
   group: '' as Group | '',
@@ -32,6 +33,7 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
   const [loading, setLoading] = useState(false);
   const [rangeInput, setRangeInput] = useState('');
   const [rangeErrors, setRangeErrors] = useState<string[]>([]);
+  const [genderFilter, setGenderFilter] = useState<'all' | 'M' | 'F'>('all');
 
   // Derive scoringType and batchMode from the selected event
   const selectedEvent = useMemo(
@@ -52,6 +54,11 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
     () => (form.group ? participants.filter((p) => p.group === form.group) : []),
     [participants, form.group],
   );
+
+  const genderFilteredParticipants = useMemo(
+  () => genderFilter === 'all' ? filteredParticipants : filteredParticipants.filter((p) => p.gender === genderFilter),
+  [filteredParticipants, genderFilter],
+);
 
   const validChestNos = useMemo(
     () => filteredParticipants.map((p) => p.chestNo),
@@ -292,8 +299,23 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
             </div>
 
             {/* Checkbox list — manual adjust after range */}
+            <div className="flex gap-2 mb-1">
+  {(['all', 'M', 'F'] as const).map((g) => (
+    <button
+      key={g}
+      type="button"
+      onClick={() => setGenderFilter(g)}
+      className={`text-xs px-3 py-1 rounded-full border ${
+        genderFilter === g ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'
+      }`}
+    >
+      {g === 'all' ? 'All' : g === 'M' ? 'Male' : 'Female'}
+    </button>
+  ))}
+</div>
+
             <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
-              {filteredParticipants.map((p) => (
+              {genderFilteredParticipants.map((p) => (
                 <label
                   key={p.chestNo}
                   className="flex items-center gap-3 min-h-[48px] px-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 select-none"
@@ -306,7 +328,7 @@ export function RoundBuilder({ events, judges, participants, onSave }: RoundBuil
                     className="w-5 h-5 accent-blue-600"
                   />
                   <span className="text-base">
-                    #{p.chestNo} — {p.name}
+                    #{p.chestNo} — {p.name} <span className="text-xs text-gray-400">({p.gender})</span>
                   </span>
                 </label>
               ))}

@@ -2,8 +2,10 @@ import Papa from 'papaparse';
 import type { ParseResult, ParseError, ParticipantDoc, Group } from '../types';
 
 const VALID_GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior'];
-
 const VALID_GROUP_SET = new Set<string>(VALID_GROUPS);
+
+const VALID_GENDERS = ['M', 'F'] as const;
+const VALID_GENDER_SET = new Set<string>(VALID_GENDERS);
 
 function isValidChestNo(value: string): boolean {
   // Must be a positive integer string — no decimals, no leading zeros that produce 0, parseInt > 0
@@ -32,6 +34,7 @@ export function parseParticipantCsv(csvText: string): ParseResult {
     const chestNo = row['chestNo']?.trim() ?? '';
     const name = row['name']?.trim() ?? '';
     const group = row['group']?.trim() ?? '';
+    const genderRaw = row['gender']?.trim().toUpperCase() ?? '';
 
     // Validate required fields — check for missing/empty values first
     if (!chestNo) {
@@ -46,6 +49,11 @@ export function parseParticipantCsv(csvText: string): ParseResult {
 
     if (!group) {
       errors.push({ row: rowNum, field: 'group', message: `Row ${rowNum}: missing required field 'group'` });
+      rowValid = false;
+    }
+
+    if (!genderRaw) {
+      errors.push({ row: rowNum, field: 'gender', message: `Row ${rowNum}: missing required field 'gender'` });
       rowValid = false;
     }
 
@@ -65,6 +73,16 @@ export function parseParticipantCsv(csvText: string): ParseResult {
         row: rowNum,
         field: 'group',
         message: `Row ${rowNum}: 'group' must be one of ${VALID_GROUPS.map(g => `'${g}'`).join(', ')}, got '${group}'`,
+      });
+      rowValid = false;
+    }
+
+    // Validate gender value (only if it was present)
+    if (genderRaw && !VALID_GENDER_SET.has(genderRaw)) {
+      errors.push({
+        row: rowNum,
+        field: 'gender',
+        message: `Row ${rowNum}: 'gender' must be 'M' or 'F', got '${genderRaw}'`,
       });
       rowValid = false;
     }
@@ -89,6 +107,7 @@ export function parseParticipantCsv(csvText: string): ParseResult {
         chestNo: chestNo.trim(),
         name,
         group: group as Group,
+        gender: genderRaw as 'M' | 'F',
       });
     }
   });

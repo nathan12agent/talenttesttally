@@ -6,9 +6,10 @@ export type SyncStatus = 'synced' | 'pending' | 'failed';
 
 // Core data interfaces
 export interface ParticipantDoc {
-  chestNo: string; // document ID = chestNo (string form of number)
+  chestNo: string;
   name: string;
   group: Group;
+  gender: 'M' | 'F';
 }
 
 export interface EventDoc {
