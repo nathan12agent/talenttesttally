@@ -7,10 +7,11 @@ import {
   getPointsConfig,
   setPointsConfig,
 } from '../../lib/firestore';
-import type { EventDoc } from '../../types';
+import type { EventDoc, RoundDoc} from '../../types';
 
 interface PointsConfigEditorProps {
   events: EventDoc[];
+  rounds: RoundDoc[];
 }
 
 interface EventPoints {
@@ -20,7 +21,7 @@ interface EventPoints {
   third: number;
 }
 
-export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
+export function PointsConfigEditor({ events, rounds }: PointsConfigEditorProps) {
   const [defaultFirst, setDefaultFirst] = useState(5);
   const [defaultSecond, setDefaultSecond] = useState(3);
   const [defaultThird, setDefaultThird] = useState(1);
@@ -109,6 +110,11 @@ export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
       ...prev,
       [eventId]: { ...prev[eventId], [field]: value },
     }));
+  }
+
+  function isEventLocked(eventId: string): boolean {
+    const eventRounds = rounds.filter((r) => r.eventId === eventId);
+    return eventRounds.length > 0 && eventRounds.every((r) => r.status === 'locked');
   }
 
   async function handleSaveEvent(eventId: string) {
@@ -205,6 +211,11 @@ export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
                   className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 p-3"
                 >
                   <span className="text-sm font-medium text-gray-800 min-w-[140px]">{ev.name}</span>
+                  {isEventLocked(ev.id) && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">
+                      🔒 Locked
+                    </span>
+                  )}
                   <input
                     type="number"
                     value={points.first}
@@ -228,7 +239,8 @@ export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
                   />
                   <button
                     onClick={() => handleSaveEvent(ev.id)}
-                    disabled={savingEventId === ev.id}
+                    disabled={savingEventId === ev.id || isEventLocked(ev.id)}
+                    title={isEventLocked(ev.id) ? 'Round already locked — podium points already computed' : undefined}
                     className="ml-auto text-xs px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                   >
                     {savingEventId === ev.id ? 'Saving…' : 'Save'}
@@ -242,3 +254,4 @@ export function PointsConfigEditor({ events }: PointsConfigEditorProps) {
     </div>
   );
 }
+

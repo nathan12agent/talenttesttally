@@ -298,7 +298,7 @@ export function AdminShell({ adminPin }: AdminShellProps) {
           <div className="flex flex-col gap-8">
             <section>
               <h2 className="font-display text-2xl text-ink mb-3">Points Configuration</h2>
-              <PointsConfigEditor events={events} />
+               <PointsConfigEditor events={events} rounds={allRounds} />
             </section>
             <section>
               <h2 className="font-display text-2xl text-ink mb-3">Points Leaderboard</h2>
