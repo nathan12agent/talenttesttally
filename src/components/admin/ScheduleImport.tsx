@@ -83,6 +83,9 @@ export function ScheduleImport({ events, judges, onImported }: ScheduleImportPro
         // Live fetch — always reflects whatever's actually in Firestore right
         // now, regardless of whether participants were imported before or
         // after this schedule file.
+                // Live fetch — always reflects whatever's actually in Firestore right
+        // now, regardless of whether participants were imported before or
+        // after this schedule file.
         const groupParticipants = await getParticipantChestNosForGroup(row.group, row.gender);
 
         const assignedJudgeIds =
@@ -92,15 +95,21 @@ export function ScheduleImport({ events, judges, onImported }: ScheduleImportPro
               : []
             : allJudgeIds;
 
+        // Common rounds are team events — teams get formed on the spot via
+        // TeamBuilder, not pulled from a fixed roster tagged group 'Common'
+        // (no such participants exist).
+        const isTeamEvent = row.group === 'Common';
+
         await createRound({
           eventId,
           group: row.group,
           scoringType: row.scoringMode === 'averaged' ? 'averaged' : 'single',
           assignedJudgeIds,
-          participantChestNos: groupParticipants,
+          participantChestNos: isTeamEvent ? [] : groupParticipants,
           scheduledOrder: row.scheduledOrder,
           status: 'pending',
           batchMode: row.location === 'offstage',
+          isTeamEvent,
           ...(row.gender ? { gender: row.gender } : {}), // omit key entirely — Firestore rejects `undefined`
         });
       }
