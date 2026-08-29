@@ -291,7 +291,7 @@ export function AdminShell({ adminPin }: AdminShellProps) {
               </select>
             </div>
             <ResultsDashboard group={groupFilter} events={events} judges={judges} />
-            <ExportButton group={groupFilter} rounds={allRounds} scores={allScores} participants={participants} />
+            <ExportButton group={groupFilter} rounds={allRounds} scores={allScores} participants={participants} events={events} />
           </div>
         )}
 

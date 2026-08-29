@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Group, RoundDoc, ScoreDoc, ParticipantDoc, ChestNoPointsTotalsDoc } from '../../types';
+import { Group, RoundDoc, ScoreDoc, ParticipantDoc, ChestNoPointsTotalsDoc, EventDoc } from '../../types';
 import { buildResultsCsv, buildPointsTallyCsv } from '../../lib/csvExport';
 import { getChestNoPointsTotals } from '../../lib/firestore';
 
@@ -10,6 +10,7 @@ interface ExportButtonProps {
   rounds: RoundDoc[];
   scores: ScoreDoc[];
   participants: ParticipantDoc[];
+  events: EventDoc[];
 }
 
 function downloadCsv(csv: string, filename: string) {
@@ -22,9 +23,10 @@ function downloadCsv(csv: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function ExportButton({ group, rounds, scores, participants }: ExportButtonProps) {
+export function ExportButton({ group, rounds, scores, participants, events }: ExportButtonProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [totals, setTotals] = useState<ChestNoPointsTotalsDoc[]>([]);
+  const eventNameById = new Map(events.map((e) => [e.id, e.name]));
 
   useEffect(() => {
     getChestNoPointsTotals().then(setTotals).catch(() => {});
@@ -35,7 +37,7 @@ export function ExportButton({ group, rounds, scores, participants }: ExportButt
   );
 
   function handleDownloadResults() {
-    const csv = buildResultsCsv(participants, rounds, scores, group);
+    const csv = buildResultsCsv(participants, rounds, scores, group, eventNameById);
     if (!csv) {
       setMessage('No data to export');
       return;
