@@ -8,11 +8,12 @@ const VALID_GENDERS = ['M', 'F'] as const;
 const VALID_GENDER_SET = new Set<string>(VALID_GENDERS);
 
 function isValidChestNo(value: string): boolean {
-  // Must be a positive integer string — no decimals, no leading zeros that produce 0, parseInt > 0
+  // Alphanumeric chest numbers are allowed (e.g. 'sj101', 'j101'), so this
+  // just guards against empty/whitespace-only values and stray characters
+  // that would break sorting/URLs/doc-ID usage (spaces, commas, slashes).
   const trimmed = value.trim();
-  if (!/^\d+$/.test(trimmed)) return false;
-  const parsed = parseInt(trimmed, 10);
-  return parsed > 0;
+  if (trimmed.length === 0) return false;
+  return /^[A-Za-z0-9]+$/.test(trimmed);
 }
 
 export function parseParticipantCsv(csvText: string): ParseResult {
@@ -58,11 +59,12 @@ export function parseParticipantCsv(csvText: string): ParseResult {
     }
 
     // Validate chestNo is a positive integer (only if it was present)
+        // Validate chestNo is alphanumeric, no spaces/symbols (only if it was present)
     if (chestNo && !isValidChestNo(chestNo)) {
       errors.push({
         row: rowNum,
         field: 'chestNo',
-        message: `Row ${rowNum}: 'chestNo' must be a positive integer, got '${chestNo}'`,
+        message: `Row ${rowNum}: 'chestNo' must be letters/numbers only (no spaces or symbols), got '${chestNo}'`,
       });
       rowValid = false;
     }
