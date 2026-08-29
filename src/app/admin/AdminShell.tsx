@@ -23,6 +23,7 @@ import { ClearDataButton } from '../../components/admin/ClearDataButton';
 import { AddJudgeForm } from '../../components/admin/AddJudgeForm';
 import type { Group, EventDoc, JudgeDoc, RoundDoc, ScoreDoc, ParticipantDoc } from '../../types';
 import { AddParticipantForm } from '../../components/admin/AddParticipantForm';
+import { RestoreBackupButton } from '../../components/admin/RestoreBackupButton';
 
 type ActiveTab = 'participants' | 'rounds' | 'control' | 'results' | 'points' | 'settings';
 
@@ -316,9 +317,13 @@ export function AdminShell({ adminPin }: AdminShellProps) {
               <h2 className="font-display text-2xl text-ink mb-3">Add Judge</h2>
               <AddJudgeForm />
             </section>
-            <section>
+                        <section>
               <h2 className="font-display text-2xl text-ink mb-3">Clear Data</h2>
               <ClearDataButton />
+            </section>
+            <section>
+              <h2 className="font-display text-2xl text-ink mb-3">Restore Backup</h2>
+              <RestoreBackupButton />
             </section>
             <section>
               <h2 className="font-display text-2xl text-ink mb-3">Off-Stage Judge Assignments</h2>
