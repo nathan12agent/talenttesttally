@@ -7,7 +7,7 @@ import {
 } from '../../lib/firestore';
 import type { Group, JudgeDoc, OffStageJudgeAssignmentDoc } from '../../types';
 
-const GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior'];
+const GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior', 'Common'];
 
 interface OffStageJudgeAssignmentsProps {
   judges: JudgeDoc[];

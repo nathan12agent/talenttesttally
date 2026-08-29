@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { upsertParticipant } from '../../lib/firestore';
 import type { Group } from '../../types';
 
-const GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior', 'Common'];
+const GROUPS: Group[] = ['Sub Jr', 'Jr', 'Intermediate', 'Senior' ];
 
 export function AddParticipantForm() {
   const [chestNo, setChestNo] = useState('');
