@@ -57,7 +57,7 @@ export function ScoreSheet({ round, judgeId, onBack }: ScoreSheetProps) {
         .map((t) => ({ id: t.id, label: t.name }))
     : allParticipants
         .filter((p) => round.participantChestNos.includes(p.chestNo))
-        .sort((a, b) => Number(a.chestNo) - Number(b.chestNo))
+        .sort((a, b) => a.chestNo.localeCompare(b.chestNo, undefined, { numeric: true, sensitivity: 'base' }))
         .map((p) => ({ id: p.chestNo, label: p.name }));
 
   const isLocked = round.status === 'locked';

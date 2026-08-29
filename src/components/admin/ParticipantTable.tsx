@@ -4,10 +4,9 @@ import { useParticipants } from '../../hooks/useParticipants';
 export function ParticipantTable() {
   const participants = useParticipants();
 
-  const sorted = [...participants].sort((a, b) => {
-    return Number(a.chestNo) - Number(b.chestNo);
-  });
-
+    const sorted = [...participants].sort((a, b) =>
+    a.chestNo.localeCompare(b.chestNo, undefined, { numeric: true, sensitivity: 'base' }),
+  );
   return (
     <div className="w-full overflow-x-auto rounded-lg border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200 text-sm">

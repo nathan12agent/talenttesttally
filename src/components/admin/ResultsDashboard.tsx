@@ -111,7 +111,7 @@ function RoundScoreTable({ round, participants, events, judges }: RoundScoreTabl
         .map((t) => ({ id: t.id, label: `👥 ${t.name}` }))
     : participants
         .filter((p) => round.participantChestNos.includes(p.chestNo))
-        .sort((a, b) => Number(a.chestNo) - Number(b.chestNo))
+        .sort((a, b) => a.chestNo.localeCompare(b.chestNo, undefined, { numeric: true, sensitivity: 'base' }))
         .map((p) => ({ id: p.chestNo, label: p.name }));
 
   const submittedJudgeIds = new Set(scores.map((s) => s.judgeId));
