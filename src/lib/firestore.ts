@@ -244,6 +244,14 @@ export async function computePodiumOnLock(
     rank += 1;
   }
 
+    // If this round was already locked before (recompute case), fetch the
+  // previous podium so its points can be reversed out before the new ones
+  // are added — otherwise every recompute double-counts on top of the last.
+  const previousPodiumSnap = await getDoc(doc(collection(db, 'podiums'), roundId));
+  const previousRankings: PodiumRanking[] = previousPodiumSnap.exists()
+    ? (previousPodiumSnap.data() as PodiumDoc).rankings
+    : [];
+
   const podium: PodiumDoc = {
     id: roundId,
     eventId: round.eventId,
@@ -254,6 +262,52 @@ export async function computePodiumOnLock(
   };
   await setDoc(doc(collection(db, 'podiums'), roundId), podium);
 
+    // Build a lookup of what each chest number was previously awarded *for
+  // this specific round*, so a recompute can subtract the old amount
+  // before adding the new one instead of stacking on top of it.
+  const previousPointsByChestNo = new Map<string, number>();
+  if (round.isTeamEvent) {
+    for (const r of previousRankings) {
+      const teamRef = doc(collection(db, 'teams'), r.chestNo);
+      const teamSnap = await getDoc(teamRef);
+      if (!teamSnap.exists()) continue;
+      const team = teamSnap.data() as Omit<TeamDoc, 'id'>;
+      team.memberChestNos.forEach((memberChestNo) => {
+        previousPointsByChestNo.set(
+          memberChestNo,
+          (previousPointsByChestNo.get(memberChestNo) ?? 0) + r.pointsAwarded,
+        );
+      });
+    }
+  } else {
+    for (const r of previousRankings) {
+      previousPointsByChestNo.set(r.chestNo, r.pointsAwarded);
+    }
+  }
+
+  async function applyPointsDelta(chestNo: string, pointsGroup: Group, newPoints: number) {
+    const previousPoints = previousPointsByChestNo.get(chestNo) ?? 0;
+    const delta = newPoints - previousPoints;
+    if (delta === 0) return;
+
+    const totalsRef = doc(collection(db, 'chestNoPointsTotals'), chestNo);
+    const totalsSnap = await getDoc(totalsRef);
+    const existing = totalsSnap.exists()
+      ? (totalsSnap.data() as ChestNoPointsTotalsDoc)
+      : { chestNo, perGroupPoints: {}, overallPoints: 0 };
+
+    const updatedPerGroup = {
+      ...existing.perGroupPoints,
+      [pointsGroup]: (existing.perGroupPoints[pointsGroup] ?? 0) + delta,
+    };
+
+    await setDoc(totalsRef, {
+      chestNo,
+      perGroupPoints: updatedPerGroup,
+      overallPoints: existing.overallPoints + delta,
+    });
+  }
+
   if (round.isTeamEvent) {
     // Fan each winning team's points out to every individual member.
     for (const r of rankings) {
@@ -263,50 +317,12 @@ export async function computePodiumOnLock(
       const team = teamSnap.data() as Omit<TeamDoc, 'id'>;
 
       await Promise.all(
-        team.memberChestNos.map(async (memberChestNo) => {
-          const totalsRef = doc(collection(db, 'chestNoPointsTotals'), memberChestNo);
-          const totalsSnap = await getDoc(totalsRef);
-          const existing = totalsSnap.exists()
-            ? (totalsSnap.data() as ChestNoPointsTotalsDoc)
-            : { chestNo: memberChestNo, perGroupPoints: {}, overallPoints: 0 };
-
-          const updatedPerGroup = {
-            ...existing.perGroupPoints,
-            Common: (existing.perGroupPoints['Common'] ?? 0) + r.pointsAwarded,
-          };
-
-          await setDoc(totalsRef, {
-            chestNo: memberChestNo,
-            perGroupPoints: updatedPerGroup,
-            overallPoints: existing.overallPoints + r.pointsAwarded,
-          });
-        }),
+        team.memberChestNos.map((memberChestNo) => applyPointsDelta(memberChestNo, 'Common', r.pointsAwarded)),
       );
     }
   } else {
-    // Existing individual-scoring path, unchanged.
-    await Promise.all(
-      rankings.map(async (r) => {
-        const totalsRef = doc(collection(db, 'chestNoPointsTotals'), r.chestNo);
-        const totalsSnap = await getDoc(totalsRef);
-        const existing = totalsSnap.exists()
-          ? (totalsSnap.data() as ChestNoPointsTotalsDoc)
-          : { chestNo: r.chestNo, perGroupPoints: {}, overallPoints: 0 };
-
-        const updatedPerGroup = {
-          ...existing.perGroupPoints,
-          [round.group]: (existing.perGroupPoints[round.group] ?? 0) + r.pointsAwarded,
-        };
-
-        await setDoc(totalsRef, {
-          chestNo: r.chestNo,
-          perGroupPoints: updatedPerGroup,
-          overallPoints: existing.overallPoints + r.pointsAwarded,
-        });
-      }),
-    );
+    await Promise.all(rankings.map((r) => applyPointsDelta(r.chestNo, round.group, r.pointsAwarded)));
   }
-
   return { ...podium, pointsConfigured };
 }
 
