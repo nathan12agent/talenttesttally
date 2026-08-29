@@ -22,6 +22,7 @@ import { AddJudgeDevice } from '../../components/admin/AddJudgeDevice';
 import { ClearDataButton } from '../../components/admin/ClearDataButton';
 import { AddJudgeForm } from '../../components/admin/AddJudgeForm';
 import type { Group, EventDoc, JudgeDoc, RoundDoc, ScoreDoc, ParticipantDoc } from '../../types';
+import { AddParticipantForm } from '../../components/admin/AddParticipantForm';
 
 type ActiveTab = 'participants' | 'rounds' | 'control' | 'results' | 'points' | 'settings';
 
@@ -232,9 +233,10 @@ export function AdminShell({ adminPin }: AdminShellProps) {
           </div>
         </div>
 
-        {/* ── Participants ── */}
+                {/* ── Participants ── */}
         {activeTab === 'participants' && (
           <div className="flex flex-col gap-6">
+            <AddParticipantForm />
             <ParticipantImport />
             <ParticipantTable />
           </div>

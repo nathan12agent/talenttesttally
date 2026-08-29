@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 import { useRounds } from '../../hooks/useRounds';
 import { ScoreSheet } from './ScoreSheet';
 import type { Group, RoundDoc } from '../../types';
+import { useEvents } from '../../hooks/useEvents';
 
 interface RoundListProps {
   judgeId: string;
@@ -13,7 +14,13 @@ interface RoundListProps {
 const ALL_GROUPS = 'all' as const;
 
 export function RoundList({ judgeId, judgeName, onLogout }: RoundListProps) {
-  const rounds = useRounds(judgeId);
+    const rounds = useRounds(judgeId);
+  const events = useEvents();
+  const eventNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    events.forEach((e) => map.set(e.id, e.name));
+    return map;
+  }, [events]);
   const [selectedRound, setSelectedRound] = useState<RoundDoc | null>(null);
   const [groupFilter, setGroupFilter] = useState<Group | typeof ALL_GROUPS>(ALL_GROUPS);
 
@@ -107,9 +114,12 @@ export function RoundList({ judgeId, judgeName, onLogout }: RoundListProps) {
                     <span className="text-xl" aria-hidden="true">
                       {isOnStage ? '🎯' : '📋'}
                     </span>
-                    <p className="text-base font-semibold text-ink">
-                      {round.group}
-                    </p>
+                                        <div className="flex flex-col">
+                      <p className="text-base font-semibold text-ink">
+                        {eventNameById.get(round.eventId) ?? 'Untitled Event'}
+                      </p>
+                      <p className="text-xs text-ink-muted">{round.group}</p>
+                    </div>
                     {round.batchMode && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-curtain-red/20 text-curtain-red border border-curtain-red/30">
                         Batch
